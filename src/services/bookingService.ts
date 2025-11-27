@@ -219,6 +219,8 @@ export async function updateBookingStatus(
     status: BookingStatus,
     reason?: string
 ): Promise<void> {
+    console.log('updateBookingStatus: Updating booking', bookingId, 'to status:', status);
+
     const docRef = doc(db, BOOKINGS_COLLECTION, bookingId);
     const updateData: Partial<Booking> = {
         status,
@@ -231,6 +233,7 @@ export async function updateBookingStatus(
     }
 
     await updateDoc(docRef, updateData);
+    console.log('updateBookingStatus: Successfully updated booking', bookingId, 'to status:', status);
 }
 
 // Confirm booking (host accepts request)
@@ -306,4 +309,51 @@ export async function getPendingReservations(hostId: string): Promise<Booking[]>
         id: doc.id,
         ...doc.data(),
     })) as Booking[];
+}
+
+// Check if user has an active booking for a property
+export async function getUserActiveBookingForProperty(
+    userId: string,
+    propertyId: string
+): Promise<Booking | null> {
+    try {
+        const q = query(
+            collection(db, BOOKINGS_COLLECTION),
+            where('guestId', '==', userId),
+            where('propertyId', '==', propertyId)
+        );
+
+        const snapshot = await getDocs(q);
+
+        // Find an active booking (pending or confirmed) that hasn't passed checkout
+        const now = new Date();
+        for (const doc of snapshot.docs) {
+            const booking = doc.data();
+            const status = String(booking.status || '').toLowerCase();
+
+            // Only consider pending or confirmed bookings
+            if (status !== 'pending' && status !== 'confirmed') {
+                continue;
+            }
+
+            // Check if checkout date hasn't passed
+            let checkOut: Date;
+            if (booking.checkOut?.toDate) {
+                checkOut = booking.checkOut.toDate();
+            } else if (booking.checkOut?.seconds) {
+                checkOut = new Date(booking.checkOut.seconds * 1000);
+            } else {
+                checkOut = new Date(booking.checkOut);
+            }
+
+            if (checkOut > now) {
+                return { id: doc.id, ...booking } as Booking;
+            }
+        }
+
+        return null;
+    } catch (error) {
+        console.error('getUserActiveBookingForProperty: Error:', error);
+        return null;
+    }
 }

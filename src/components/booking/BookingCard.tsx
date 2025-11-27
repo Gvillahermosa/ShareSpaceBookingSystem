@@ -34,15 +34,25 @@ export default function BookingCard({
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'PHP',
             minimumFractionDigits: 0,
         }).format(price);
     };
 
-    const checkInDate = booking.checkIn.toDate();
-    const checkOutDate = booking.checkOut.toDate();
-    const isUpcoming = checkInDate > new Date();
-    const isOngoing = checkInDate <= new Date() && checkOutDate >= new Date();
+    // Safely convert dates (handle both Timestamp and Date objects)
+    const toDate = (date: any): Date => {
+        if (date instanceof Date) return date;
+        if (date?.toDate) return date.toDate();
+        if (date?.seconds) return new Date(date.seconds * 1000);
+        return new Date(date);
+    };
+
+    const checkInDate = toDate(booking.checkIn);
+    const checkOutDate = toDate(booking.checkOut);
+    const now = new Date();
+    const isUpcoming = checkOutDate > now; // Can cancel if checkout hasn't passed
+    const isOngoing = checkInDate <= now && checkOutDate >= now;
+    const canCancel = isUpcoming && (booking.status === 'confirmed' || booking.status === 'pending');
     const totalPrice = booking.pricing.total;
 
     return (
@@ -113,13 +123,13 @@ export default function BookingCard({
                         <span className="font-semibold">{formatPrice(totalPrice)}</span>
 
                         {/* Actions */}
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                             {variant === 'guest' && (
                                 <>
-                                    {isUpcoming && booking.status === 'confirmed' && (
+                                    {canCancel && (
                                         <button
                                             onClick={() => onAction?.('cancel', booking.id)}
-                                            className="text-sm text-secondary-600 hover:text-secondary-900 underline"
+                                            className="px-3 py-1 text-sm bg-red-100 text-red-600 hover:bg-red-200 rounded-lg font-medium"
                                         >
                                             Cancel
                                         </button>

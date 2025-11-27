@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
-import { differenceInDays } from 'date-fns';
-import type { Property } from '../../types';
+import { differenceInDays, format } from 'date-fns';
+import type { Property, Booking } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUIStore, useBookingStore } from '../../store';
-import { calculateBookingPrice } from '../../services/bookingService';
+import { calculateBookingPrice, getUserActiveBookingForProperty } from '../../services/bookingService';
 import { checkPropertyAvailability } from '../../services/propertyService';
 import { Button } from '../ui';
 import toast from 'react-hot-toast';
@@ -29,6 +29,30 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
     });
     const [showGuestsDropdown, setShowGuestsDropdown] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [existingBooking, setExistingBooking] = useState<Booking | null>(null);
+    const [checkingBooking, setCheckingBooking] = useState(false);
+
+    // Check if user already has an active booking for this property
+    useEffect(() => {
+        const checkExistingBooking = async () => {
+            if (!currentUser) {
+                setExistingBooking(null);
+                return;
+            }
+
+            setCheckingBooking(true);
+            try {
+                const booking = await getUserActiveBookingForProperty(currentUser.uid, property.id);
+                setExistingBooking(booking);
+            } catch (error) {
+                console.error('Error checking existing booking:', error);
+            } finally {
+                setCheckingBooking(false);
+            }
+        };
+
+        checkExistingBooking();
+    }, [currentUser, property.id]);
 
     const totalGuests = guests.adults + guests.children;
     const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
@@ -76,9 +100,12 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
         setLoading(true);
         try {
             // Check availability
+            console.log('Checking availability for property:', property.id, 'dates:', checkIn, '-', checkOut);
             const isAvailable = await checkPropertyAvailability(property.id, checkIn, checkOut);
+            console.log('Availability result:', isAvailable);
             if (!isAvailable) {
-                toast.error('These dates are not available');
+                toast.error('Sorry, these dates are already booked. Please select different dates.');
+                setLoading(false);
                 return;
             }
 
@@ -94,6 +121,7 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
 
             navigate(`/booking/confirm`);
         } catch (error) {
+            console.error('Error in handleReserve:', error);
             toast.error('Something went wrong. Please try again.');
         } finally {
             setLoading(false);
@@ -103,7 +131,7 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'PHP',
             minimumFractionDigits: 0,
         }).format(price);
     };
@@ -264,14 +292,44 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
             </div>
 
             {/* Reserve Button */}
-            <Button onClick={handleReserve} loading={loading} fullWidth size="lg">
-                {property.instantBook ? 'Reserve' : 'Request to book'}
-            </Button>
+            {existingBooking ? (
+                <div>
+                    <Button
+                        onClick={() => navigate('/trips')}
+                        fullWidth
+                        size="lg"
+                        variant="secondary"
+                        className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    >
+                        Already Reserved
+                    </Button>
+                    <p className="text-center text-sm text-secondary-600 mt-2">
+                        You have a booking from{' '}
+                        {existingBooking.checkIn?.toDate
+                            ? format(existingBooking.checkIn.toDate(), 'MMM d')
+                            : existingBooking.checkIn?.seconds
+                                ? format(new Date(existingBooking.checkIn.seconds * 1000), 'MMM d')
+                                : 'N/A'}{' '}
+                        -{' '}
+                        {existingBooking.checkOut?.toDate
+                            ? format(existingBooking.checkOut.toDate(), 'MMM d, yyyy')
+                            : existingBooking.checkOut?.seconds
+                                ? format(new Date(existingBooking.checkOut.seconds * 1000), 'MMM d, yyyy')
+                                : 'N/A'}
+                    </p>
+                </div>
+            ) : (
+                <>
+                    <Button onClick={handleReserve} loading={loading || checkingBooking} fullWidth size="lg">
+                        {checkingBooking ? 'Checking...' : property.instantBook ? 'Reserve' : 'Request to book'}
+                    </Button>
 
-            {property.instantBook && (
-                <p className="text-center text-sm text-secondary-500 mt-2">
-                    You won't be charged yet
-                </p>
+                    {property.instantBook && (
+                        <p className="text-center text-sm text-secondary-500 mt-2">
+                            You won't be charged yet
+                        </p>
+                    )}
+                </>
             )}
 
             {/* Price Breakdown */}

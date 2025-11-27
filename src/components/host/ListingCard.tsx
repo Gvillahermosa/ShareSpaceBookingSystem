@@ -1,16 +1,28 @@
 import { Link } from 'react-router-dom';
-import type { Property } from '../../types';
+import { subDays, differenceInDays } from 'date-fns';
+import type { Property, Booking } from '../../types';
 import { Badge, Button } from '../ui';
 
 interface ListingCardProps {
     property: Property;
+    bookings?: Booking[];
     onEdit?: () => void;
     onDelete?: () => void;
     onToggleStatus?: () => void;
 }
 
+// Helper to safely convert Firestore Timestamp to Date
+const toDate = (timestamp: any): Date => {
+    if (!timestamp) return new Date();
+    if (timestamp instanceof Date) return timestamp;
+    if (timestamp.toDate) return timestamp.toDate();
+    if (timestamp.seconds) return new Date(timestamp.seconds * 1000);
+    return new Date(timestamp);
+};
+
 export default function ListingCard({
     property,
+    bookings = [],
     onEdit,
     onDelete,
     onToggleStatus,
@@ -33,13 +45,59 @@ export default function ListingCard({
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'PHP',
             minimumFractionDigits: 0,
         }).format(price);
     };
 
     const propertyRating = property.averageRating ?? 0;
     const propertyReviewCount = property.reviewCount ?? 0;
+
+    // Calculate stats from bookings data
+    const calculateStats = () => {
+        const now = new Date();
+        const thirtyDaysAgo = subDays(now, 30);
+
+        // Filter bookings for this property in the last 30 days
+        const propertyBookings = bookings.filter((b) => b.propertyId === property.id);
+
+        // Bookings created in last 30 days (confirmed or completed)
+        const recentBookings = propertyBookings.filter((b) => {
+            const createdAt = toDate(b.createdAt);
+            return (
+                createdAt >= thirtyDaysAgo &&
+                (b.status === 'confirmed' || b.status === 'completed')
+            );
+        });
+
+        // Calculate occupied nights in the last 30 days
+        let occupiedNights = 0;
+        propertyBookings
+            .filter((b) => b.status === 'confirmed' || b.status === 'completed')
+            .forEach((booking) => {
+                const checkIn = toDate(booking.checkIn);
+                const checkOut = toDate(booking.checkOut);
+
+                // Calculate overlap with last 30 days
+                const periodStart = thirtyDaysAgo > checkIn ? thirtyDaysAgo : checkIn;
+                const periodEnd = now < checkOut ? now : checkOut;
+
+                if (periodStart < periodEnd) {
+                    const overlap = differenceInDays(periodEnd, periodStart);
+                    occupiedNights += Math.max(0, overlap);
+                }
+            });
+
+        const occupancyRate = Math.min(100, Math.round((occupiedNights / 30) * 100));
+
+        return {
+            views: property.views || 0,
+            bookingsCount: recentBookings.length,
+            occupancyRate,
+        };
+    };
+
+    const stats = calculateStats();
 
     return (
         <div className="bg-white border border-secondary-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
@@ -137,15 +195,15 @@ export default function ListingCard({
             {/* Quick Stats Bar */}
             <div className="border-t border-secondary-200 px-4 py-3 bg-secondary-50 grid grid-cols-3 gap-4">
                 <div className="text-center">
-                    <p className="text-2xl font-semibold">{property.views || 0}</p>
+                    <p className="text-2xl font-semibold">{stats.views}</p>
                     <p className="text-xs text-secondary-500">Views (30d)</p>
                 </div>
                 <div className="text-center">
-                    <p className="text-2xl font-semibold">{property.bookings || 0}</p>
+                    <p className="text-2xl font-semibold">{stats.bookingsCount}</p>
                     <p className="text-xs text-secondary-500">Bookings (30d)</p>
                 </div>
                 <div className="text-center">
-                    <p className="text-2xl font-semibold">{property.occupancyRate || 0}%</p>
+                    <p className="text-2xl font-semibold">{stats.occupancyRate}%</p>
                     <p className="text-xs text-secondary-500">Occupancy</p>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 import type { Property, User } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBookingStore } from '../../store';
@@ -65,22 +66,32 @@ export default function BookingConfirmation() {
 
         setSubmitting(true);
         try {
+            // Convert dates to Timestamps if they're Date objects
+            const checkInTimestamp = currentBooking.checkIn instanceof Date
+                ? Timestamp.fromDate(currentBooking.checkIn)
+                : currentBooking.checkIn;
+            const checkOutTimestamp = currentBooking.checkOut instanceof Date
+                ? Timestamp.fromDate(currentBooking.checkOut)
+                : currentBooking.checkOut;
+
             const bookingData = {
                 propertyId: currentBooking.propertyId,
                 hostId: currentBooking.hostId,
                 guestId: currentUser.uid,
                 guestName: currentUser.displayName ?? 'Guest',
                 guestPhoto: currentUser.photoURL ?? undefined,
-                checkIn: currentBooking.checkIn,
-                checkOut: currentBooking.checkOut,
+                checkIn: checkInTimestamp,
+                checkOut: checkOutTimestamp,
                 guests: currentBooking.guests,
                 pricing: currentBooking.pricing,
-                specialRequests: message,
+                specialRequests: message || '',
                 status: property.instantBook ? 'confirmed' : 'pending',
                 paymentStatus: 'pending',
             };
 
+            console.log('Creating booking with data:', bookingData);
             const bookingId = await createBooking(bookingData as never);
+            console.log('Booking created with ID:', bookingId);
             clearCurrentBooking();
             navigate(`/booking/${bookingId}/success`);
             toast.success(
@@ -88,8 +99,10 @@ export default function BookingConfirmation() {
                     ? 'Booking confirmed!'
                     : 'Booking request sent to host'
             );
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating booking:', error);
+            console.error('Error code:', error?.code);
+            console.error('Error message:', error?.message);
             toast.error('Failed to create booking. Please try again.');
         } finally {
             setSubmitting(false);
@@ -99,7 +112,7 @@ export default function BookingConfirmation() {
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'PHP',
             minimumFractionDigits: 0,
         }).format(price);
     };
@@ -132,6 +145,15 @@ export default function BookingConfirmation() {
     const propertyRating = property.averageRating ?? 0;
     const propertyReviewCount = property.reviewCount ?? 0;
 
+    // Helper to convert date (could be Date or Timestamp)
+    const toDate = (date: Date | { toDate: () => Date }): Date => {
+        if (date instanceof Date) return date;
+        return date.toDate();
+    };
+
+    const checkInDate = toDate(checkIn);
+    const checkOutDate = toDate(checkOut);
+
     return (
         <div className="max-w-6xl mx-auto px-4 py-8">
             <button
@@ -158,8 +180,8 @@ export default function BookingConfirmation() {
                                 <div>
                                     <p className="font-medium">Dates</p>
                                     <p className="text-secondary-600">
-                                        {format(checkIn.toDate(), 'MMM d')} –{' '}
-                                        {format(checkOut.toDate(), 'MMM d, yyyy')}
+                                        {format(checkInDate, 'MMM d')} –{' '}
+                                        {format(checkOutDate, 'MMM d, yyyy')}
                                     </p>
                                 </div>
                                 <button className="text-sm font-medium underline">Edit</button>
@@ -303,7 +325,7 @@ export default function BookingConfirmation() {
 
                         {/* Total */}
                         <div className="flex justify-between pt-6 text-lg font-semibold">
-                            <span>Total (USD)</span>
+                            <span>Total (PHP)</span>
                             <span>{formatPrice(pricing.total)}</span>
                         </div>
                     </div>

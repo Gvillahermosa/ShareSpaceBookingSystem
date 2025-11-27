@@ -160,6 +160,57 @@
   @apply bg-primary-500 text-white font-semibold;
 }
 
+/* Custom price marker styles (Airbnb style) */
+.custom-price-marker {
+  background: transparent;
+}
+
+.price-marker {
+  background: white;
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 2px solid #e5e7eb;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.price-marker:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.price-marker.active {
+  background: #1f2937;
+  color: white;
+  border-color: #1f2937;
+  transform: scale(1.1);
+}
+
+/* Custom cluster marker styles */
+.custom-cluster-marker {
+  background: transparent;
+}
+
+.cluster-marker {
+  background: #FF385C;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 3px solid white;
+}
+
 /* Animation utilities */
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { Booking, Property } from '../types';
-import { getGuestBookings } from '../services/bookingService';
+import { getGuestBookings, updateBookingStatus } from '../services/bookingService';
 import { getPropertyById } from '../services/propertyService';
 import { useAuth } from '../contexts/AuthContext';
 import { BookingCard } from '../components/booking';
-import { Spinner, Button } from '../components/ui';
+import { Spinner, Button, ConfirmDialog } from '../components/ui';
 import toast from 'react-hot-toast';
 
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -15,6 +15,11 @@ export default function TripsPage() {
     const [properties, setProperties] = useState<Record<string, Property>>({});
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabType>('upcoming');
+
+    // Cancel confirmation state
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+    const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+    const [cancelling, setCancelling] = useState(false);
 
     useEffect(() => {
         const fetchBookings = async () => {
@@ -49,10 +54,18 @@ export default function TripsPage() {
         fetchBookings();
     }, [currentUser]);
 
+    // Safely convert dates (handle both Timestamp and Date objects)
+    const toDate = (date: any): Date => {
+        if (date instanceof Date) return date;
+        if (date?.toDate) return date.toDate();
+        if (date?.seconds) return new Date(date.seconds * 1000);
+        return new Date(date);
+    };
+
     const filterBookings = (tab: TabType): Booking[] => {
         const now = new Date();
         return bookings.filter((booking) => {
-            const checkOut = booking.checkOut.toDate();
+            const checkOut = toDate(booking.checkOut);
 
             switch (tab) {
                 case 'upcoming':
@@ -67,18 +80,44 @@ export default function TripsPage() {
         });
     };
 
-    const handleAction = async (action: string, _bookingId: string) => {
+    const handleAction = async (action: string, bookingId: string) => {
         switch (action) {
             case 'cancel':
-                if (window.confirm('Are you sure you want to cancel this booking?')) {
-                    // TODO: Implement cancellation
-                    toast.success('Booking cancelled');
-                }
+                setBookingToCancel(bookingId);
+                setCancelDialogOpen(true);
                 break;
             case 'review':
                 // TODO: Open review modal
                 toast('Review feature coming soon');
                 break;
+        }
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!bookingToCancel) return;
+
+        setCancelling(true);
+        try {
+            await updateBookingStatus(bookingToCancel, 'cancelled', 'Cancelled by guest');
+            // Update local state
+            setBookings(prev => prev.map(b =>
+                b.id === bookingToCancel ? { ...b, status: 'cancelled' as const } : b
+            ));
+            toast.success('Booking cancelled successfully');
+            setCancelDialogOpen(false);
+            setBookingToCancel(null);
+        } catch (error) {
+            console.error('Error cancelling booking:', error);
+            toast.error('Failed to cancel booking. Please try again.');
+        } finally {
+            setCancelling(false);
+        }
+    };
+
+    const handleCloseCancelDialog = () => {
+        if (!cancelling) {
+            setCancelDialogOpen(false);
+            setBookingToCancel(null);
         }
     };
 
@@ -166,6 +205,19 @@ export default function TripsPage() {
                     ))}
                 </div>
             )}
+
+            {/* Cancel Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={cancelDialogOpen}
+                onClose={handleCloseCancelDialog}
+                onConfirm={handleConfirmCancel}
+                title="Cancel Booking"
+                message="Are you sure you want to cancel this booking? This action cannot be undone and refund policies may apply."
+                confirmText="Yes, Cancel Booking"
+                cancelText="Keep Booking"
+                variant="danger"
+                loading={cancelling}
+            />
         </div>
     );
 }

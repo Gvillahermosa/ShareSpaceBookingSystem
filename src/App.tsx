@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/layout';
@@ -17,6 +17,7 @@ import HostDashboardPage from './pages/HostDashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import BecomeHostPage from './pages/BecomeHostPage';
 import WishlistsPage from './pages/WishlistsPage';
+import BookingSuccessPage from './pages/BookingSuccessPage';
 
 // Import date picker styles
 import 'react-datepicker/dist/react-datepicker.css';
@@ -42,7 +43,10 @@ function App() {
                             <Route path="/wishlists" element={<WishlistsPage />} />
                             <Route path="/messages" element={<MessagesPage />} />
                             <Route path="/profile" element={<ProfilePage />} />
+                            <Route path="/account" element={<ProfilePage />} />
+                            <Route path="/settings" element={<Navigate to="/profile" replace />} />
                             <Route path="/booking/confirm" element={<BookingConfirmation />} />
+                            <Route path="/booking/:bookingId/success" element={<BookingSuccessPage />} />
                         </Route>
 
                         {/* Protected host routes */}

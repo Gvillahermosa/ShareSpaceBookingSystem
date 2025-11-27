@@ -92,17 +92,20 @@ export default function WishlistsPage() {
                     {wishlistProperties.map((property) => (
                         <div key={property.id} className="relative group">
                             <PropertyCard property={property} />
+                            {/* Delete button - positioned at top-left to avoid overlap with heart icon */}
                             <button
                                 onClick={() => handleRemoveFromWishlist(property.id)}
-                                className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                                className="absolute top-3 left-3 z-20 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-red-50"
                                 title="Remove from wishlist"
                             >
                                 <svg
-                                    className="w-5 h-5 text-red-500"
-                                    fill="currentColor"
+                                    className="w-4 h-4 text-red-500"
+                                    fill="none"
+                                    stroke="currentColor"
                                     viewBox="0 0 24 24"
+                                    strokeWidth={2}
                                 >
-                                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>

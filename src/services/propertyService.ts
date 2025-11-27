@@ -241,40 +241,106 @@ export async function checkPropertyAvailability(
     checkIn: Date,
     checkOut: Date
 ): Promise<boolean> {
-    const property = await getProperty(propertyId);
-    if (!property) return false;
-
-    // Check blocked dates
-    const checkInStr = checkIn.toISOString().split('T')[0];
-    const checkOutStr = checkOut.toISOString().split('T')[0];
-
-    for (const blockedDate of property.blockedDates) {
-        if (blockedDate >= checkInStr && blockedDate < checkOutStr) {
+    try {
+        const property = await getProperty(propertyId);
+        if (!property) {
+            console.log('checkPropertyAvailability: Property not found');
             return false;
         }
-    }
 
-    // Check existing bookings (this would be done in Cloud Functions in production)
-    const bookingsQuery = query(
-        collection(db, 'bookings'),
-        where('propertyId', '==', propertyId),
-        where('status', 'in', ['pending', 'confirmed'])
-    );
+        // Check blocked dates (handle undefined/null blockedDates)
+        const blockedDates = property.blockedDates || [];
+        const checkInStr = checkIn.toISOString().split('T')[0];
+        const checkOutStr = checkOut.toISOString().split('T')[0];
 
-    const bookingsSnapshot = await getDocs(bookingsQuery);
+        for (const blockedDate of blockedDates) {
+            if (blockedDate >= checkInStr && blockedDate < checkOutStr) {
+                console.log('checkPropertyAvailability: Date is blocked');
+                return false;
+            }
+        }
 
-    for (const doc of bookingsSnapshot.docs) {
-        const booking = doc.data();
-        const existingCheckIn = booking.checkIn.toDate();
-        const existingCheckOut = booking.checkOut.toDate();
+        // Check existing bookings - use simple query without composite index requirement
+        try {
+            // Query all bookings for this property
+            const bookingsQuery = query(
+                collection(db, 'bookings'),
+                where('propertyId', '==', propertyId)
+            );
 
-        // Check for date overlap
-        if (checkIn < existingCheckOut && checkOut > existingCheckIn) {
+            const bookingsSnapshot = await getDocs(bookingsQuery);
+            console.log('checkPropertyAvailability: Found', bookingsSnapshot.docs.length, 'bookings for property');
+
+            for (const doc of bookingsSnapshot.docs) {
+                const booking = doc.data();
+
+                console.log('=== checkPropertyAvailability: Booking Details ===');
+                console.log('Booking ID:', doc.id);
+                console.log('Raw status value:', booking.status);
+                console.log('Status type:', typeof booking.status);
+                console.log('Status JSON:', JSON.stringify(booking.status));
+
+                // Only check pending and confirmed bookings - skip cancelled and completed
+                const status = String(booking.status || '').toLowerCase().trim();
+                console.log('Normalized status:', status);
+
+                if (status === 'cancelled' || status === 'completed') {
+                    console.log('SKIPPING - booking is', status);
+                    continue;
+                }
+
+                if (status !== 'pending' && status !== 'confirmed') {
+                    console.log('SKIPPING - unknown status:', status);
+                    continue;
+                }
+
+                // Safely convert dates
+                let existingCheckIn: Date;
+                let existingCheckOut: Date;
+
+                if (booking.checkIn?.toDate) {
+                    existingCheckIn = booking.checkIn.toDate();
+                } else if (booking.checkIn?.seconds) {
+                    existingCheckIn = new Date(booking.checkIn.seconds * 1000);
+                } else {
+                    existingCheckIn = new Date(booking.checkIn);
+                }
+
+                if (booking.checkOut?.toDate) {
+                    existingCheckOut = booking.checkOut.toDate();
+                } else if (booking.checkOut?.seconds) {
+                    existingCheckOut = new Date(booking.checkOut.seconds * 1000);
+                } else {
+                    existingCheckOut = new Date(booking.checkOut);
+                }
+
+                console.log('Checking ACTIVE booking:', doc.id, {
+                    status: status,
+                    existingCheckIn: existingCheckIn.toISOString(),
+                    existingCheckOut: existingCheckOut.toISOString(),
+                    requestedCheckIn: checkIn.toISOString(),
+                    requestedCheckOut: checkOut.toISOString()
+                });
+
+                // Check for date overlap: two ranges overlap if start1 < end2 AND end1 > start2
+                if (checkIn < existingCheckOut && checkOut > existingCheckIn) {
+                    console.log('DATE OVERLAP FOUND with booking', doc.id);
+                    return false;
+                }
+            }
+        } catch (queryError: any) {
+            console.error('checkPropertyAvailability: Query error:', queryError);
+            // Don't allow booking if we can't verify availability
             return false;
         }
-    }
 
-    return true;
+        console.log('checkPropertyAvailability: Dates are available');
+        return true;
+    } catch (error) {
+        console.error('checkPropertyAvailability: Error:', error);
+        // Don't allow booking if there's an error checking availability
+        return false;
+    }
 }
 
 // Get all properties (for home page)

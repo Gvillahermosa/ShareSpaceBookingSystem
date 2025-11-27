@@ -69,7 +69,7 @@ export default function EarningsSummary({ period = 'month' }: EarningsSummaryPro
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'PHP',
             minimumFractionDigits: 0,
         }).format(amount);
     };

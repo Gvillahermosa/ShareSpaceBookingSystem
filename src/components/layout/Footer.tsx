@@ -120,7 +120,7 @@ export default function Footer() {
                                 <span>English (US)</span>
                             </button>
                             <button className="text-sm text-secondary-600 hover:text-secondary-900">
-                                $ USD
+                                ₱ PHP
                             </button>
                             <div className="flex items-center space-x-3">
                                 <a

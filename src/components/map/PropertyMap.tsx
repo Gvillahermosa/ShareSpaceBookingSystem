@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { Icon, LatLngBounds } from 'leaflet';
+import { Icon, LatLngBounds, DivIcon } from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { Link } from 'react-router-dom';
 import type { Property } from '../../types';
@@ -18,12 +18,33 @@ const defaultIcon = new Icon({
     shadowSize: [41, 41],
 });
 
-// Simple preview card for map popups (no automatic redirect)
+// Create price marker icon (Airbnb style)
+function createPriceIcon(price: number, isActive: boolean = false) {
+    const formatPrice = (price: number) => {
+        if (price >= 1000) {
+            return `₱${(price / 1000).toFixed(0)}k`;
+        }
+        return `₱${price}`;
+    };
+
+    return new DivIcon({
+        className: 'custom-price-marker',
+        html: `
+            <div class="price-marker ${isActive ? 'active' : ''}">
+                ${formatPrice(price)}
+            </div>
+        `,
+        iconSize: [60, 30],
+        iconAnchor: [30, 15],
+    });
+}
+
+// Simple preview card for map popups
 function MapPropertyPreview({ property }: { property: Property }) {
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'PHP',
             minimumFractionDigits: 0,
         }).format(price);
     };
@@ -53,12 +74,12 @@ function MapPropertyPreview({ property }: { property: Property }) {
                     <h3 className="font-semibold text-gray-900 text-sm truncate flex-1">
                         {property.location.city}, {property.location.state}
                     </h3>
-                    {property.averageRating && (
+                    {(property.averageRating ?? 0) > 0 && (
                         <div className="flex items-center ml-2">
                             <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
-                            <span className="ml-1 text-xs text-gray-900">{property.averageRating.toFixed(1)}</span>
+                            <span className="ml-1 text-xs text-gray-900">{property.averageRating?.toFixed(1)}</span>
                         </div>
                     )}
                 </div>
@@ -128,14 +149,13 @@ export default function PropertyMap({
                 property.location.coordinates.latitude,
                 property.location.coordinates.longitude,
             ];
-            // Use the active property id for future enhancement
-            void activePropertyId;
+            const isActive = activePropertyId === property.id;
 
             return (
                 <Marker
                     key={property.id}
                     position={position}
-                    icon={defaultIcon}
+                    icon={createPriceIcon(property.pricing.basePrice, isActive)}
                     eventHandlers={{
                         click: () => onPropertyClick?.(property),
                     }}
@@ -172,13 +192,9 @@ export default function PropertyMap({
                     iconCreateFunction={(cluster: { getChildCount: () => number }) => {
                         const count = cluster.getChildCount();
 
-                        return new Icon({
-                            iconUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
-                  <circle cx="20" cy="20" r="18" fill="#FF385C" stroke="white" stroke-width="3"/>
-                  <text x="20" y="25" text-anchor="middle" fill="white" font-weight="bold" font-size="14">${count}</text>
-                </svg>
-              `),
+                        return new DivIcon({
+                            className: 'custom-cluster-marker',
+                            html: `<div class="cluster-marker">${count}</div>`,
                             iconSize: [40, 40],
                             iconAnchor: [20, 20],
                         });
@@ -278,7 +294,7 @@ function LocationPickerMarker({
     const map = useMap();
 
     useEffect(() => {
-        const handleClick = (e: any) => {
+        const handleClick = (e: L.LeafletMouseEvent) => {
             onChange({ lat: e.latlng.lat, lng: e.latlng.lng });
         };
 

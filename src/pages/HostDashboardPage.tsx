@@ -1,32 +1,79 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { Property, Booking } from '../types';
 import { getHostProperties } from '../services/propertyService';
-import { getHostBookings } from '../services/bookingService';
+import { getHostBookings, updateBookingStatus } from '../services/bookingService';
 import { useAuth } from '../contexts/AuthContext';
 import { ListingCard, EarningsSummary } from '../components/host';
 import { BookingCard } from '../components/booking';
 import { Spinner, Button } from '../components/ui';
+import { ConfirmDialog } from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 
 type TabType = 'overview' | 'listings' | 'reservations' | 'earnings';
 
+// Helper to safely convert Firestore Timestamp to Date
+const toDate = (timestamp: any): Date => {
+    if (!timestamp) return new Date();
+    if (timestamp instanceof Date) return timestamp;
+    if (timestamp.toDate) return timestamp.toDate();
+    if (timestamp.seconds) return new Date(timestamp.seconds * 1000);
+    return new Date(timestamp);
+};
+
 export default function HostDashboardPage() {
-    const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState<TabType>('overview');
+    const { currentUser, loading: authLoading } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabFromUrl = searchParams.get('tab') as TabType | null;
+    const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl || 'overview');
     const [properties, setProperties] = useState<Property[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [dataFetched, setDataFetched] = useState(false);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        action: 'accept' | 'decline' | 'cancel' | null;
+        bookingId: string | null;
+    }>({ isOpen: false, action: null, bookingId: null });
+
+    // Update active tab when URL changes
+    useEffect(() => {
+        if (tabFromUrl && ['overview', 'listings', 'reservations', 'earnings'].includes(tabFromUrl)) {
+            setActiveTab(tabFromUrl);
+        }
+    }, [tabFromUrl]);
+
+    // Update URL when tab changes
+    const handleTabChange = (tab: TabType) => {
+        setActiveTab(tab);
+        if (tab === 'overview') {
+            setSearchParams({});
+        } else {
+            setSearchParams({ tab });
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
+            // Wait for auth to be ready and user to be available
+            if (authLoading) {
+                return;
+            }
+
             if (!currentUser) {
-                console.log('HostDashboard: No current user');
+                console.log('HostDashboard: No current user after auth loaded');
                 setLoading(false);
                 return;
             }
 
+            // Prevent duplicate fetches
+            if (dataFetched) {
+                return;
+            }
+
             console.log('HostDashboard: Fetching data for user:', currentUser.uid);
+            setLoading(true);
 
             try {
                 const [propertiesData, bookingsData] = await Promise.all([
@@ -37,6 +84,7 @@ export default function HostDashboardPage() {
                 console.log('HostDashboard: Fetched bookings:', bookingsData.length);
                 setProperties(propertiesData);
                 setBookings(bookingsData);
+                setDataFetched(true);
             } catch (error) {
                 console.error('Error fetching data:', error);
                 toast.error('Failed to load dashboard data');
@@ -46,11 +94,11 @@ export default function HostDashboardPage() {
         };
 
         fetchData();
-    }, [currentUser]);
+    }, [currentUser, authLoading, dataFetched]);
 
     const pendingBookings = bookings.filter((b) => b.status === 'pending');
     const upcomingBookings = bookings.filter(
-        (b) => b.status === 'confirmed' && b.checkIn.toDate() > new Date()
+        (b) => b.status === 'confirmed' && toDate(b.checkIn) > new Date()
     );
     const activeListings = properties.filter((p) => p.status === 'active');
 
@@ -61,9 +109,39 @@ export default function HostDashboardPage() {
     };
 
     const handleBookingAction = async (action: string, bookingId: string) => {
-        // TODO: Implement booking actions
-        console.log(action, bookingId);
-        toast.success(`Booking ${action}ed`);
+        if (action === 'accept' || action === 'decline') {
+            setConfirmDialog({ isOpen: true, action, bookingId });
+        } else if (action === 'cancel') {
+            setConfirmDialog({ isOpen: true, action: 'cancel', bookingId });
+        }
+    };
+
+    const handleConfirmAction = async () => {
+        const { action, bookingId } = confirmDialog;
+        if (!action || !bookingId) return;
+
+        setActionLoading(bookingId);
+        try {
+            if (action === 'accept') {
+                await updateBookingStatus(bookingId, 'confirmed');
+                setBookings(prev => prev.map(b =>
+                    b.id === bookingId ? { ...b, status: 'confirmed' as const } : b
+                ));
+                toast.success('Booking confirmed successfully!');
+            } else if (action === 'decline' || action === 'cancel') {
+                await updateBookingStatus(bookingId, 'cancelled', action === 'decline' ? 'Declined by host' : 'Cancelled by host');
+                setBookings(prev => prev.map(b =>
+                    b.id === bookingId ? { ...b, status: 'cancelled' as const } : b
+                ));
+                toast.success(action === 'decline' ? 'Booking declined' : 'Booking cancelled');
+            }
+        } catch (error) {
+            console.error('Error updating booking:', error);
+            toast.error(`Failed to ${action} booking`);
+        } finally {
+            setActionLoading(null);
+            setConfirmDialog({ isOpen: false, action: null, bookingId: null });
+        }
     };
 
     const tabs: { id: TabType; label: string }[] = [
@@ -73,7 +151,8 @@ export default function HostDashboardPage() {
         { id: 'earnings', label: 'Earnings' },
     ];
 
-    if (loading) {
+    // Show loading while auth is loading or data is being fetched
+    if (authLoading || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Spinner size="lg" />
@@ -111,7 +190,7 @@ export default function HostDashboardPage() {
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => handleTabChange(tab.id)}
                             className={`pb-4 font-medium transition-colors relative ${activeTab === tab.id
                                 ? 'text-secondary-900'
                                 : 'text-secondary-500 hover:text-secondary-700'
@@ -146,7 +225,7 @@ export default function HostDashboardPage() {
                         <div className="bg-white border border-secondary-200 rounded-xl p-6">
                             <p className="text-sm text-secondary-500">Total Earnings</p>
                             <p className="text-3xl font-bold mt-2 text-green-600">
-                                ${calculateTotalEarnings().toLocaleString()}
+                                ₱{calculateTotalEarnings().toLocaleString()}
                             </p>
                         </div>
                     </div>
@@ -186,7 +265,7 @@ export default function HostDashboardPage() {
                             </div>
                             {upcomingBookings.length > 3 && (
                                 <button
-                                    onClick={() => setActiveTab('reservations')}
+                                    onClick={() => handleTabChange('reservations')}
                                     className="mt-4 text-primary-500 font-medium hover:underline"
                                 >
                                     View all {upcomingBookings.length} upcoming check-ins
@@ -233,6 +312,7 @@ export default function HostDashboardPage() {
                                 <ListingCard
                                     key={property.id}
                                     property={property}
+                                    bookings={bookings}
                                     onEdit={() => console.log('Edit', property.id)}
                                     onDelete={() => console.log('Delete', property.id)}
                                     onToggleStatus={() => console.log('Toggle', property.id)}
@@ -284,6 +364,30 @@ export default function HostDashboardPage() {
             )}
 
             {activeTab === 'earnings' && <EarningsSummary />}
+
+            {/* Confirmation Dialog for booking actions */}
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ isOpen: false, action: null, bookingId: null })}
+                onConfirm={handleConfirmAction}
+                title={
+                    confirmDialog.action === 'accept'
+                        ? 'Accept Booking'
+                        : confirmDialog.action === 'decline'
+                            ? 'Decline Booking'
+                            : 'Cancel Booking'
+                }
+                message={
+                    confirmDialog.action === 'accept'
+                        ? 'Are you sure you want to accept this booking? The guest will be notified.'
+                        : confirmDialog.action === 'decline'
+                            ? 'Are you sure you want to decline this booking request?'
+                            : 'Are you sure you want to cancel this booking? This action cannot be undone.'
+                }
+                confirmText={actionLoading ? 'Processing...' : confirmDialog.action === 'accept' ? 'Accept' : confirmDialog.action === 'decline' ? 'Decline' : 'Cancel Booking'}
+                variant={confirmDialog.action === 'accept' ? 'info' : 'danger'}
+                loading={!!actionLoading}
+            />
         </div>
     );
 }

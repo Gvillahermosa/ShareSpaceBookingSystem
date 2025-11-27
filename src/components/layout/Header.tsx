@@ -6,6 +6,7 @@ import { Button, Avatar } from '../ui';
 import { Dropdown, DropdownItem } from '../ui/Modal';
 import { ROUTES } from '../../config/constants';
 import SearchBar from '../search/SearchBar';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Header() {
     const { currentUser, userProfile, logout } = useAuth();
@@ -73,6 +74,9 @@ export default function Header() {
                                 Become a Host
                             </button>
                         )}
+
+                        {/* Notification Bell - Only for logged in users */}
+                        {currentUser && <NotificationDropdown />}
 
                         {/* User Menu */}
                         {currentUser ? (
@@ -160,10 +164,7 @@ export default function Header() {
                                 {/* Account Section */}
                                 <div className="py-2">
                                     <DropdownItem onClick={() => navigate(ROUTES.PROFILE)}>
-                                        Account
-                                    </DropdownItem>
-                                    <DropdownItem onClick={() => navigate(ROUTES.SETTINGS)}>
-                                        Settings
+                                        Account Settings
                                     </DropdownItem>
                                     <DropdownItem onClick={handleLogout} danger>
                                         Log out
