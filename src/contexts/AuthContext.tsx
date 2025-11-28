@@ -22,6 +22,7 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     signup: (email: string, password: string, name: string) => Promise<void>;
     loginWithGoogle: () => Promise<void>;
+    signupWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     updateUserProfile: (data: Partial<User>) => Promise<void>;
@@ -81,7 +82,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     async function login(email: string, password: string) {
-        await signInWithEmailAndPassword(auth, email, password);
+        // First, try to sign in with Firebase Auth
+        const { user } = await signInWithEmailAndPassword(auth, email, password);
+
+        // Check if user profile exists in Firestore
+        const existingProfile = await fetchUserProfile(user.uid);
+
+        if (!existingProfile) {
+            // User exists in Firebase Auth but not in our database
+            // Sign them out and throw an error
+            await signOut(auth);
+            throw new Error('Account not found. Please sign up first.');
+        }
     }
 
     async function signup(email: string, password: string, name: string) {
@@ -104,14 +116,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const existingProfile = await fetchUserProfile(user.uid);
 
         if (!existingProfile) {
-            // Create new user profile
-            await createUserProfile(
-                user.uid,
-                user.email || '',
-                user.displayName || 'User',
-                user.photoURL || undefined
-            );
+            // User doesn't have a profile - sign them out and show error
+            await signOut(auth);
+            throw new Error('Account not found. Please sign up with Google first.');
         }
+    }
+
+    async function signupWithGoogle() {
+        const { user } = await signInWithPopup(auth, googleProvider);
+
+        // Check if user profile already exists
+        const existingProfile = await fetchUserProfile(user.uid);
+
+        if (existingProfile) {
+            // User already has an account - just log them in
+            return;
+        }
+
+        // Create new user profile
+        await createUserProfile(
+            user.uid,
+            user.email || '',
+            user.displayName || 'User',
+            user.photoURL || undefined
+        );
     }
 
     async function logout() {
@@ -171,6 +199,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         login,
         signup,
         loginWithGoogle,
+        signupWithGoogle,
         logout,
         resetPassword,
         updateUserProfile,
