@@ -22,7 +22,7 @@ type SignupForm = z.infer<typeof signupSchema>;
 
 export default function SignupModal() {
     const { isSignupModalOpen, closeSignupModal, openLoginModal } = useUIStore();
-    const { signup, loginWithGoogle } = useAuth();
+    const { signup, signupWithGoogle } = useAuth();
     const [loading, setLoading] = useState(false);
 
     const {
@@ -52,7 +52,7 @@ export default function SignupModal() {
     const handleGoogleSignup = async () => {
         setLoading(true);
         try {
-            await loginWithGoogle();
+            await signupWithGoogle();
             toast.success('Welcome to ShareSpace!');
             closeSignupModal();
         } catch (error: unknown) {
