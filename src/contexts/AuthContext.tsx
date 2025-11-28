@@ -9,9 +9,13 @@ import {
     updateProfile,
     onAuthStateChanged,
     sendEmailVerification,
+    deleteUser,
+    reauthenticateWithPopup,
+    EmailAuthProvider,
+    reauthenticateWithCredential,
 } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../config/firebase';
 import type { User } from '../types';
 
@@ -27,6 +31,7 @@ interface AuthContextType {
     resetPassword: (email: string) => Promise<void>;
     updateUserProfile: (data: Partial<User>) => Promise<void>;
     sendVerificationEmail: () => Promise<void>;
+    deleteAccount: (password?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,10 +69,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         name: string,
         photoURL?: string
     ): Promise<User> {
-        const newUser: Omit<User, 'id'> = {
+        const newUser: Record<string, unknown> = {
             email,
             name,
-            photoURL: photoURL || undefined,
             isHost: false,
             createdAt: Timestamp.now(),
             verified: {
@@ -77,13 +81,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
             },
         };
 
+        // Only add photoURL if it exists (Firestore doesn't accept undefined)
+        if (photoURL) {
+            newUser.photoURL = photoURL;
+        }
+
         await setDoc(doc(db, 'users', uid), newUser);
-        return { id: uid, ...newUser };
+        return { id: uid, ...newUser } as User;
     }
 
     async function login(email: string, password: string) {
         // First, try to sign in with Firebase Auth
         const { user } = await signInWithEmailAndPassword(auth, email, password);
+
+        // Check if email is verified
+        if (!user.emailVerified) {
+            await signOut(auth);
+            throw new Error('Please verify your email before logging in. Check your inbox for the verification link.');
+        }
 
         // Check if user profile exists in Firestore
         const existingProfile = await fetchUserProfile(user.uid);
@@ -107,6 +122,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Send verification email
         await sendEmailVerification(user);
+
+        // Sign out the user - they need to verify email first
+        await signOut(auth);
     }
 
     async function loginWithGoogle() {
@@ -175,6 +193,46 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
     }
 
+    async function deleteAccount(password?: string) {
+        if (!currentUser) throw new Error('No user logged in');
+
+        try {
+            // Check the provider to determine re-authentication method
+            const providerData = currentUser.providerData[0];
+            const isGoogleUser = providerData?.providerId === 'google.com';
+
+            // Re-authenticate the user before deletion
+            if (isGoogleUser) {
+                // Re-authenticate with Google
+                await reauthenticateWithPopup(currentUser, googleProvider);
+            } else if (password && currentUser.email) {
+                // Re-authenticate with email/password
+                const credential = EmailAuthProvider.credential(currentUser.email, password);
+                await reauthenticateWithCredential(currentUser, credential);
+            }
+
+            // Delete user profile from Firestore first
+            await deleteDoc(doc(db, 'users', currentUser.uid));
+
+            // Delete the Firebase Auth user
+            await deleteUser(currentUser);
+
+            // Clear local state
+            setUserProfile(null);
+            setCurrentUser(null);
+        } catch (error: unknown) {
+            console.error('Error deleting account:', error);
+            const firebaseError = error as { code?: string };
+            if (firebaseError.code === 'auth/requires-recent-login') {
+                throw new Error('Please re-authenticate to delete your account.');
+            }
+            if (firebaseError.code === 'auth/wrong-password') {
+                throw new Error('Incorrect password. Please try again.');
+            }
+            throw new Error('Failed to delete account. Please try again.');
+        }
+    }
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setCurrentUser(user);
@@ -204,6 +262,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         resetPassword,
         updateUserProfile,
         sendVerificationEmail,
+        deleteAccount,
     };
 
     return (
