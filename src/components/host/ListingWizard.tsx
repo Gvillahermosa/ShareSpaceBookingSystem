@@ -569,7 +569,7 @@ export default function ListingWizard() {
                                     Base Price (per night)
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-500">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-500">₱</span>
                                     <input
                                         type="number"
                                         {...register('pricing.basePrice', { valueAsNumber: true })}
@@ -587,7 +587,7 @@ export default function ListingWizard() {
                                     Cleaning Fee
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-500">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-500">₱</span>
                                     <input
                                         type="number"
                                         {...register('pricing.cleaningFee', { valueAsNumber: true })}
@@ -639,7 +639,7 @@ export default function ListingWizard() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                        Maximum Stay (nights, optional)
+                                        Maximum Stay (nights)
                                     </label>
                                     <input
                                         type="number"
@@ -803,7 +803,7 @@ export default function ListingWizard() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-secondary-500">Price per night</p>
-                                    <p className="font-medium">${watchedValues.pricing.basePrice}</p>
+                                    <p className="font-medium">₱{watchedValues.pricing.basePrice}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-secondary-500">Photos</p>
