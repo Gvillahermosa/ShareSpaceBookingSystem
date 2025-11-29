@@ -422,7 +422,7 @@ export async function getAllProperties(): Promise<Property[]> {
 // Search properties with filters
 export async function searchProperties(filters: SearchFilters): Promise<Property[]> {
     // First, try to get properties with 'active' status
-    let q = query(
+    const q = query(
         collection(db, PROPERTIES_COLLECTION),
         orderBy('createdAt', 'desc'),
         limit(100)

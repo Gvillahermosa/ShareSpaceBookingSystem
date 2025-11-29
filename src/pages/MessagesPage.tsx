@@ -115,6 +115,7 @@ export default function MessagesPage() {
         });
 
         return () => unsubscribe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser, hostIdParam, propertyIdParam]);
 
     // Subscribe to messages for selected conversation
@@ -135,6 +136,7 @@ export default function MessagesPage() {
         });
 
         return () => unsubscribe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedConversation?.id, currentUser]);
 
     // Scroll to bottom only when new messages are added (not on initial load)
