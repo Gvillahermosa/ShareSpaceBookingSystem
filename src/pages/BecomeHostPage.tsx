@@ -13,7 +13,7 @@ const HOSTING_BENEFITS = [
     {
         icon: '🛡️',
         title: 'Host with confidence',
-        description: 'Every booking includes $1M property damage protection and $1M liability insurance.',
+        description: 'Every booking includes ₱1M property damage protection and ₱1M liability insurance.',
     },
     {
         icon: '📱',
@@ -102,7 +102,7 @@ export default function BecomeHostPage() {
                             onClick={handleBecomeHost}
                             loading={loading}
                             size="lg"
-                            className="bg-white text-primary-600 hover:bg-primary-50"
+                            className="!bg-white !text-primary-600 hover:!bg-primary-50 font-semibold"
                         >
                             {currentUser ? 'Start hosting' : 'Sign up to host'}
                         </Button>
@@ -163,12 +163,12 @@ export default function BecomeHostPage() {
                         See what you could earn
                     </h2>
                     <p className="text-secondary-600 mb-8">
-                        Most hosts in your area earn an average of $1,500 per month
+                        Most hosts in your area earn an average of ₱1,500 per month
                     </p>
                     <div className="bg-secondary-50 rounded-2xl p-8">
                         <div className="grid md:grid-cols-3 gap-8 mb-8">
                             <div>
-                                <p className="text-4xl font-bold text-primary-600">$150</p>
+                                <p className="text-4xl font-bold text-primary-600">₱150</p>
                                 <p className="text-secondary-600">Average per night</p>
                             </div>
                             <div>
@@ -176,7 +176,7 @@ export default function BecomeHostPage() {
                                 <p className="text-secondary-600">Nights booked/month</p>
                             </div>
                             <div>
-                                <p className="text-4xl font-bold text-green-600">$1,800</p>
+                                <p className="text-4xl font-bold text-green-600">₱1,800</p>
                                 <p className="text-secondary-600">Monthly earnings</p>
                             </div>
                         </div>
@@ -214,7 +214,7 @@ export default function BecomeHostPage() {
                                 </svg>
                             </summary>
                             <p className="mt-4 text-secondary-600">
-                                Every booking includes $1 million in property damage protection. In the rare case something is damaged, we'll help you get reimbursed.
+                                Every booking includes ₱1 million in property damage protection. In the rare case something is damaged, we'll help you get reimbursed.
                             </p>
                         </details>
 
@@ -258,7 +258,7 @@ export default function BecomeHostPage() {
                         onClick={handleBecomeHost}
                         loading={loading}
                         size="lg"
-                        className="bg-white text-primary-600 hover:bg-primary-50"
+                        className="!bg-white !text-primary-600 hover:!bg-primary-50 font-semibold"
                     >
                         Get started
                     </Button>
