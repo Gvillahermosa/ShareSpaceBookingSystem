@@ -15,18 +15,17 @@ export default function SearchPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [activePropertyId, setActivePropertyId] = useState<string | undefined>();
 
-    const parseGuests = () => {
-        const guestsParam = searchParams.get('guests');
+    const parseGuests = (guestsParam: string | null) => {
         if (!guestsParam) return undefined;
         const total = parseInt(guestsParam);
         return { adults: total, children: 0, infants: 0 };
     };
 
-    const [filters, setFilters] = useState<SearchFiltersType>({
+    const parseFiltersFromParams = () => ({
         location: searchParams.get('location') || undefined,
         checkIn: searchParams.get('checkIn') ? new Date(searchParams.get('checkIn')!) : undefined,
         checkOut: searchParams.get('checkOut') ? new Date(searchParams.get('checkOut')!) : undefined,
-        guests: parseGuests(),
+        guests: parseGuests(searchParams.get('guests')),
         propertyType: (searchParams.get('types')?.split(',').filter(Boolean) || []) as PropertyType[],
         priceRange: {
             min: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : 0,
@@ -38,6 +37,14 @@ export default function SearchPage() {
         amenities: searchParams.get('amenities')?.split(',').filter(Boolean) || [],
         instantBook: searchParams.get('instantBook') === 'true',
     });
+
+    const [filters, setFilters] = useState<SearchFiltersType>(parseFiltersFromParams());
+
+    // Update filters when URL search params change
+    useEffect(() => {
+        setFilters(parseFiltersFromParams());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
 
     useEffect(() => {
         const fetchProperties = async () => {
@@ -160,21 +167,27 @@ export default function SearchPage() {
                                     />
                                 </svg>
                                 <h3 className="text-lg sm:text-xl font-medium text-secondary-900 mb-2">
-                                    No results found
+                                    No properties found{filters.location ? ` in "${filters.location}"` : ''}
                                 </h3>
                                 <p className="text-sm sm:text-base text-secondary-500 mb-4 sm:mb-6">
-                                    Try adjusting your search or filters.
+                                    {filters.location
+                                        ? `We couldn't find any properties matching your search. Try a different location or adjust your filters.`
+                                        : 'Try adjusting your search or filters.'}
                                 </p>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setFilters({
-                                        priceRange: { min: 0, max: 10000 },
-                                        propertyType: [],
-                                        amenities: [],
-                                    })}
+                                    onClick={() => {
+                                        setFilters({
+                                            priceRange: { min: 0, max: 100000 },
+                                            propertyType: [],
+                                            amenities: [],
+                                            location: undefined,
+                                        });
+                                        setSearchParams({});
+                                    }}
                                 >
-                                    Clear filters
+                                    Clear all filters
                                 </Button>
                             </div>
                         ) : (

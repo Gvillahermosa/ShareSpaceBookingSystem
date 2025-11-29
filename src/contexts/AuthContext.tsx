@@ -14,6 +14,8 @@ import {
     reauthenticateWithPopup,
     EmailAuthProvider,
     reauthenticateWithCredential,
+    updatePassword,
+    verifyBeforeUpdateEmail,
 } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
@@ -33,6 +35,8 @@ interface AuthContextType {
     updateUserProfile: (data: Partial<User>) => Promise<void>;
     sendVerificationEmail: () => Promise<void>;
     deleteAccount: (password?: string) => Promise<void>;
+    changeEmail: (newEmail: string, password: string) => Promise<void>;
+    changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -194,6 +198,66 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
     }
 
+    async function changeEmail(newEmail: string, password: string) {
+        if (!currentUser || !currentUser.email) throw new Error('No user logged in');
+
+        try {
+            // Re-authenticate the user first
+            const credential = EmailAuthProvider.credential(currentUser.email, password);
+            await reauthenticateWithCredential(currentUser, credential);
+
+            // Send verification email to new address before changing
+            await verifyBeforeUpdateEmail(currentUser, newEmail);
+
+            // Update email in Firestore (will be fully updated after verification)
+            await setDoc(doc(db, 'users', currentUser.uid), { pendingEmail: newEmail }, { merge: true });
+
+        } catch (error: unknown) {
+            console.error('Error changing email:', error);
+            const firebaseError = error as { code?: string };
+            if (firebaseError.code === 'auth/wrong-password') {
+                throw new Error('Incorrect password. Please try again.');
+            }
+            if (firebaseError.code === 'auth/email-already-in-use') {
+                throw new Error('This email is already in use by another account.');
+            }
+            if (firebaseError.code === 'auth/invalid-email') {
+                throw new Error('Please enter a valid email address.');
+            }
+            if (firebaseError.code === 'auth/requires-recent-login') {
+                throw new Error('Please log out and log back in, then try again.');
+            }
+            throw new Error('Failed to change email. Please try again.');
+        }
+    }
+
+    async function changePassword(currentPassword: string, newPassword: string) {
+        if (!currentUser || !currentUser.email) throw new Error('No user logged in');
+
+        try {
+            // Re-authenticate the user first
+            const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+            await reauthenticateWithCredential(currentUser, credential);
+
+            // Update password
+            await updatePassword(currentUser, newPassword);
+
+        } catch (error: unknown) {
+            console.error('Error changing password:', error);
+            const firebaseError = error as { code?: string };
+            if (firebaseError.code === 'auth/wrong-password') {
+                throw new Error('Current password is incorrect. Please try again.');
+            }
+            if (firebaseError.code === 'auth/weak-password') {
+                throw new Error('New password is too weak. Please use at least 6 characters.');
+            }
+            if (firebaseError.code === 'auth/requires-recent-login') {
+                throw new Error('Please log out and log back in, then try again.');
+            }
+            throw new Error('Failed to change password. Please try again.');
+        }
+    }
+
     async function deleteAccount(password?: string) {
         if (!currentUser) throw new Error('No user logged in');
 
@@ -264,6 +328,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         updateUserProfile,
         sendVerificationEmail,
         deleteAccount,
+        changeEmail,
+        changePassword,
     };
 
     return (

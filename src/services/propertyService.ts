@@ -484,6 +484,36 @@ export async function searchProperties(filters: SearchFilters): Promise<Property
         properties = properties.filter((p) => p.beds >= filters.beds!);
     }
 
+    // Apply location filter - search in city, state, country, and address
+    if (filters.location && filters.location.trim() !== '') {
+        const searchTerm = filters.location.toLowerCase().trim();
+        console.log('Filtering by location:', searchTerm);
+
+        properties = properties.filter((p) => {
+            const location = p.location;
+            if (!location) {
+                console.log('Property has no location:', p.id, p.title);
+                return false;
+            }
+
+            const searchableFields = [
+                location.city,
+                location.state,
+                location.country,
+                location.address,
+            ].filter(Boolean);
+
+            const matches = searchableFields.some(field =>
+                field.toLowerCase().includes(searchTerm)
+            );
+
+            console.log('Property:', p.title, '| Location:', location.city, location.state, '| Matches:', matches);
+            return matches;
+        });
+
+        console.log('Properties after location filter:', properties.length);
+    }
+
     return properties;
 }
 

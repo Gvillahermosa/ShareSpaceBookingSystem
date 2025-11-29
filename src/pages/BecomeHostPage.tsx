@@ -87,22 +87,22 @@ export default function BecomeHostPage() {
     }
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen w-full overflow-x-hidden">
             {/* Hero Section */}
-            <section className="relative bg-gradient-to-br from-primary-500 to-primary-700 text-white py-20">
+            <section className="relative bg-gradient-to-br from-primary-500 to-primary-700 text-white py-12 sm:py-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-3xl">
-                        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
                             Share your space,<br />earn extra income
                         </h1>
-                        <p className="text-xl text-primary-100 mb-8">
+                        <p className="text-base sm:text-xl text-primary-100 mb-6 sm:mb-8">
                             Join thousands of hosts who are earning money by sharing their homes with travelers from around the world.
                         </p>
                         <Button
                             onClick={handleBecomeHost}
                             loading={loading}
                             size="lg"
-                            className="!bg-white !text-primary-600 hover:!bg-primary-50 font-semibold"
+                            className="!bg-white !text-primary-600 hover:!bg-primary-50 font-semibold w-full sm:w-auto"
                         >
                             {currentUser ? 'Start hosting' : 'Sign up to host'}
                         </Button>
@@ -116,19 +116,19 @@ export default function BecomeHostPage() {
             </section>
 
             {/* How it works */}
-            <section className="py-20 bg-white">
+            <section className="py-12 sm:py-20 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-bold text-center mb-12">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
                         How it works
                     </h2>
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
                         {STEPS.map((step) => (
                             <div key={step.number} className="text-center">
-                                <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold mx-auto mb-3 sm:mb-4">
                                     {step.number}
                                 </div>
-                                <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-                                <p className="text-secondary-600">{step.description}</p>
+                                <h3 className="text-lg sm:text-xl font-semibold mb-2">{step.title}</h3>
+                                <p className="text-secondary-600 text-sm sm:text-base">{step.description}</p>
                             </div>
                         ))}
                     </div>
@@ -136,20 +136,20 @@ export default function BecomeHostPage() {
             </section>
 
             {/* Benefits */}
-            <section className="py-20 bg-secondary-50">
+            <section className="py-12 sm:py-20 bg-secondary-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-bold text-center mb-12">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
                         Why host with ShareSpace?
                     </h2>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                         {HOSTING_BENEFITS.map((benefit, index) => (
                             <div
                                 key={index}
-                                className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                                className="bg-white p-4 sm:p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
                             >
-                                <span className="text-4xl mb-4 block">{benefit.icon}</span>
-                                <h3 className="text-lg font-semibold mb-2">{benefit.title}</h3>
-                                <p className="text-secondary-600">{benefit.description}</p>
+                                <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">{benefit.icon}</span>
+                                <h3 className="text-base sm:text-lg font-semibold mb-2">{benefit.title}</h3>
+                                <p className="text-secondary-600 text-sm sm:text-base">{benefit.description}</p>
                             </div>
                         ))}
                     </div>
@@ -157,27 +157,27 @@ export default function BecomeHostPage() {
             </section>
 
             {/* Earnings Calculator */}
-            <section className="py-20 bg-white">
+            <section className="py-12 sm:py-20 bg-white">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h2 className="text-3xl font-bold mb-4">
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">
                         See what you could earn
                     </h2>
-                    <p className="text-secondary-600 mb-8">
+                    <p className="text-secondary-600 text-sm sm:text-base mb-6 sm:mb-8">
                         Most hosts in your area earn an average of ₱1,500 per month
                     </p>
-                    <div className="bg-secondary-50 rounded-2xl p-8">
-                        <div className="grid md:grid-cols-3 gap-8 mb-8">
+                    <div className="bg-secondary-50 rounded-2xl p-4 sm:p-8">
+                        <div className="grid grid-cols-3 gap-3 sm:gap-8 mb-6 sm:mb-8">
                             <div>
-                                <p className="text-4xl font-bold text-primary-600">₱150</p>
-                                <p className="text-secondary-600">Average per night</p>
+                                <p className="text-xl sm:text-4xl font-bold text-primary-600">₱150</p>
+                                <p className="text-secondary-600 text-xs sm:text-base">Average per night</p>
                             </div>
                             <div>
-                                <p className="text-4xl font-bold text-primary-600">12</p>
-                                <p className="text-secondary-600">Nights booked/month</p>
+                                <p className="text-xl sm:text-4xl font-bold text-primary-600">12</p>
+                                <p className="text-secondary-600 text-xs sm:text-base">Nights booked/month</p>
                             </div>
                             <div>
-                                <p className="text-4xl font-bold text-green-600">₱1,800</p>
-                                <p className="text-secondary-600">Monthly earnings</p>
+                                <p className="text-xl sm:text-4xl font-bold text-green-600">₱1,800</p>
+                                <p className="text-secondary-600 text-xs sm:text-base">Monthly earnings</p>
                             </div>
                         </div>
                         <p className="text-xs text-secondary-500">
@@ -188,56 +188,56 @@ export default function BecomeHostPage() {
             </section>
 
             {/* FAQ */}
-            <section className="py-20 bg-secondary-50">
+            <section className="py-12 sm:py-20 bg-secondary-50">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-bold text-center mb-12">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
                         Frequently asked questions
                     </h2>
-                    <div className="space-y-6">
-                        <details className="bg-white p-6 rounded-xl shadow-sm group">
-                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                    <div className="space-y-4 sm:space-y-6">
+                        <details className="bg-white p-4 sm:p-6 rounded-xl shadow-sm group">
+                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center text-sm sm:text-base">
                                 How do I get paid?
-                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </summary>
-                            <p className="mt-4 text-secondary-600">
+                            <p className="mt-3 sm:mt-4 text-secondary-600 text-sm sm:text-base">
                                 Payouts are sent 24 hours after your guest checks in. You can receive payments via PayPal, bank transfer, or other methods available in your region.
                             </p>
                         </details>
 
-                        <details className="bg-white p-6 rounded-xl shadow-sm group">
-                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                        <details className="bg-white p-4 sm:p-6 rounded-xl shadow-sm group">
+                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center text-sm sm:text-base">
                                 What if something gets damaged?
-                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </summary>
-                            <p className="mt-4 text-secondary-600">
+                            <p className="mt-3 sm:mt-4 text-secondary-600 text-sm sm:text-base">
                                 Every booking includes ₱1 million in property damage protection. In the rare case something is damaged, we'll help you get reimbursed.
                             </p>
                         </details>
 
-                        <details className="bg-white p-6 rounded-xl shadow-sm group">
-                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                        <details className="bg-white p-4 sm:p-6 rounded-xl shadow-sm group">
+                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center text-sm sm:text-base">
                                 Can I choose who stays at my place?
-                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </summary>
-                            <p className="mt-4 text-secondary-600">
+                            <p className="mt-3 sm:mt-4 text-secondary-600 text-sm sm:text-base">
                                 You can set house rules, require guests to have verified IDs, and choose to manually approve each booking request. Or, enable Instant Book to let guests book instantly.
                             </p>
                         </details>
 
-                        <details className="bg-white p-6 rounded-xl shadow-sm group">
-                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                        <details className="bg-white p-4 sm:p-6 rounded-xl shadow-sm group">
+                            <summary className="font-semibold cursor-pointer list-none flex justify-between items-center text-sm sm:text-base">
                                 How much does it cost to list?
-                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-secondary-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </summary>
-                            <p className="mt-4 text-secondary-600">
+                            <p className="mt-3 sm:mt-4 text-secondary-600 text-sm sm:text-base">
                                 Creating a listing is completely free! We only charge a small service fee (3%) when you receive a booking.
                             </p>
                         </details>
@@ -246,19 +246,19 @@ export default function BecomeHostPage() {
             </section>
 
             {/* CTA */}
-            <section className="py-20 bg-primary-600 text-white">
+            <section className="py-12 sm:py-20 bg-primary-600 text-white">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h2 className="text-3xl font-bold mb-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">
                         Ready to start hosting?
                     </h2>
-                    <p className="text-primary-100 mb-8">
+                    <p className="text-primary-100 text-sm sm:text-base mb-6 sm:mb-8">
                         Join our community of hosts and start earning money from your space today.
                     </p>
                     <Button
                         onClick={handleBecomeHost}
                         loading={loading}
                         size="lg"
-                        className="!bg-white !text-primary-600 hover:!bg-primary-50 font-semibold"
+                        className="!bg-white !text-primary-600 hover:!bg-primary-50 font-semibold w-full sm:w-auto"
                     >
                         Get started
                     </Button>

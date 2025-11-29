@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import type { Property, Booking } from '../types';
-import { getHostProperties, updateProperty, deleteProperty } from '../services/propertyService';
+import { getHostProperties, updateProperty, deleteProperty, getProperty } from '../services/propertyService';
 import { getHostBookings, updateBookingStatus } from '../services/bookingService';
+import { createNotification } from '../services/notificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { ListingCard, EarningsSummary } from '../components/host';
 import { BookingCard } from '../components/booking';
@@ -132,18 +133,72 @@ export default function HostDashboardPage() {
 
         setActionLoading(bookingId);
         try {
+            // Find the booking to get guest info
+            const booking = bookings.find(b => b.id === bookingId);
+
             if (action === 'accept') {
                 await updateBookingStatus(bookingId, 'confirmed');
                 setBookings(prev => prev.map(b =>
                     b.id === bookingId ? { ...b, status: 'confirmed' as const } : b
                 ));
                 toast.success('Booking confirmed successfully!');
+
+                // Send notification to guest
+                if (booking) {
+                    try {
+                        // Get property details for the notification
+                        const property = await getProperty(booking.propertyId);
+                        const propertyName = property?.title || 'your booked property';
+                        const checkInDate = toDate(booking.checkIn).toLocaleDateString();
+                        const checkOutDate = toDate(booking.checkOut).toLocaleDateString();
+
+                        await createNotification(
+                            booking.guestId,
+                            'booking',
+                            'Booking Confirmed! 🎉',
+                            `Great news! Your reservation at "${propertyName}" from ${checkInDate} to ${checkOutDate} has been confirmed by the host.`,
+                            {
+                                bookingId: booking.id,
+                                propertyId: booking.propertyId,
+                                action: 'confirmed'
+                            }
+                        );
+                    } catch (notifError) {
+                        console.error('Failed to send notification:', notifError);
+                        // Don't show error to user - booking was still confirmed
+                    }
+                }
             } else if (action === 'decline' || action === 'cancel') {
                 await updateBookingStatus(bookingId, 'cancelled', action === 'decline' ? 'Declined by host' : 'Cancelled by host');
                 setBookings(prev => prev.map(b =>
                     b.id === bookingId ? { ...b, status: 'cancelled' as const } : b
                 ));
                 toast.success(action === 'decline' ? 'Booking declined' : 'Booking cancelled');
+
+                // Send notification to guest about declined/cancelled booking
+                if (booking) {
+                    try {
+                        const property = await getProperty(booking.propertyId);
+                        const propertyName = property?.title || 'the property';
+                        const checkInDate = toDate(booking.checkIn).toLocaleDateString();
+                        const checkOutDate = toDate(booking.checkOut).toLocaleDateString();
+                        const actionText = action === 'decline' ? 'declined' : 'cancelled';
+
+                        await createNotification(
+                            booking.guestId,
+                            'booking',
+                            `Booking ${action === 'decline' ? 'Declined' : 'Cancelled'}`,
+                            `Unfortunately, your reservation at "${propertyName}" from ${checkInDate} to ${checkOutDate} has been ${actionText} by the host. You can search for other available properties.`,
+                            {
+                                bookingId: booking.id,
+                                propertyId: booking.propertyId,
+                                action: actionText
+                            }
+                        );
+                    } catch (notifError) {
+                        console.error('Failed to send notification:', notifError);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error updating booking:', error);
@@ -223,7 +278,7 @@ export default function HostDashboardPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <div>
@@ -247,13 +302,13 @@ export default function HostDashboardPage() {
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-secondary-200 mb-8">
-                <div className="flex space-x-8">
+            <div className="border-b border-secondary-200 mb-4 sm:mb-8 overflow-x-auto">
+                <div className="flex space-x-4 sm:space-x-8 min-w-max">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => handleTabChange(tab.id)}
-                            className={`pb-4 font-medium transition-colors relative ${activeTab === tab.id
+                            className={`pb-3 sm:pb-4 text-sm sm:text-base font-medium transition-colors relative whitespace-nowrap ${activeTab === tab.id
                                 ? 'text-secondary-900'
                                 : 'text-secondary-500 hover:text-secondary-700'
                                 }`}

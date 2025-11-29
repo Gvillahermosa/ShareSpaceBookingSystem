@@ -19,13 +19,26 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
-    const { currentUser, userProfile, updateUserProfile, deleteAccount } = useAuth();
+    const { currentUser, userProfile, updateUserProfile, deleteAccount, changeEmail, changePassword } = useAuth();
     const navigate = useNavigate();
     const [uploading, setUploading] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deletePassword, setDeletePassword] = useState('');
     const [deleting, setDeleting] = useState(false);
+
+    // Email change modal state
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [newEmail, setNewEmail] = useState('');
+    const [emailPassword, setEmailPassword] = useState('');
+    const [changingEmail, setChangingEmail] = useState(false);
+
+    // Password change modal state
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [changingPassword, setChangingPassword] = useState(false);
 
     // Check if user signed up with Google
     const isGoogleUser = currentUser?.providerData[0]?.providerId === 'google.com';
@@ -105,6 +118,59 @@ export default function ProfilePage() {
         }
     };
 
+    const handleChangeEmail = async () => {
+        if (!newEmail || !emailPassword) {
+            toast.error('Please fill in all fields');
+            return;
+        }
+
+        setChangingEmail(true);
+        try {
+            await changeEmail(newEmail, emailPassword);
+            toast.success('Verification email sent to your new address. Please check your inbox.');
+            setShowEmailModal(false);
+            setNewEmail('');
+            setEmailPassword('');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to change email';
+            toast.error(errorMessage);
+        } finally {
+            setChangingEmail(false);
+        }
+    };
+
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            toast.error('Please fill in all fields');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            toast.error('New passwords do not match');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            toast.error('Password must be at least 6 characters');
+            return;
+        }
+
+        setChangingPassword(true);
+        try {
+            await changePassword(currentPassword, newPassword);
+            toast.success('Password updated successfully!');
+            setShowPasswordModal(false);
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to change password';
+            toast.error(errorMessage);
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
     if (!currentUser) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -114,12 +180,12 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto px-4 py-8">
-            <h1 className="text-3xl font-semibold mb-8">Profile</h1>
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+            <h1 className="text-2xl sm:text-3xl font-semibold mb-4 sm:mb-8">Profile</h1>
 
-            <div className="bg-white border border-secondary-200 rounded-xl p-6 mb-6">
+            <div className="bg-white border border-secondary-200 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
                 {/* Profile Photo */}
-                <div className="flex items-center space-x-6 mb-8">
+                <div className="flex flex-col sm:flex-row items-center sm:space-x-6 space-y-4 sm:space-y-0 mb-6 sm:mb-8">
                     <div className="relative">
                         <Avatar
                             src={userProfile?.photoURL || currentUser.photoURL || undefined}
@@ -203,32 +269,30 @@ export default function ProfilePage() {
                             <p className="font-medium">Email</p>
                             <p className="text-sm text-secondary-500">{currentUser.email}</p>
                         </div>
-                        <Button variant="outline" size="sm">
-                            Change
-                        </Button>
+                        {!isGoogleUser && (
+                            <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
+                                Change
+                            </Button>
+                        )}
+                        {isGoogleUser && (
+                            <span className="text-sm text-secondary-400">Managed by Google</span>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between py-3 border-b border-secondary-100">
                         <div>
                             <p className="font-medium">Password</p>
-                            <p className="text-sm text-secondary-500">Last changed 30 days ago</p>
-                        </div>
-                        <Button variant="outline" size="sm">
-                            Update
-                        </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between py-3 border-b border-secondary-100">
-                        <div>
-                            <p className="font-medium">Identity Verification</p>
                             <p className="text-sm text-secondary-500">
-                                {userProfile?.verified?.identity ? 'Verified' : 'Not verified'}
+                                {isGoogleUser ? 'Sign in with Google' : 'Update your password'}
                             </p>
                         </div>
-                        {!userProfile?.verified?.identity && (
-                            <Button variant="outline" size="sm">
-                                Verify
+                        {!isGoogleUser && (
+                            <Button variant="outline" size="sm" onClick={() => setShowPasswordModal(true)}>
+                                Update
                             </Button>
+                        )}
+                        {isGoogleUser && (
+                            <span className="text-sm text-secondary-400">Managed by Google</span>
                         )}
                     </div>
 
@@ -330,6 +394,172 @@ export default function ProfilePage() {
                             disabled={deleteConfirmText !== 'DELETE' || (!isGoogleUser && !deletePassword)}
                         >
                             Delete Account
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Change Email Modal */}
+            <Modal
+                isOpen={showEmailModal}
+                onClose={() => {
+                    setShowEmailModal(false);
+                    setNewEmail('');
+                    setEmailPassword('');
+                }}
+                size="sm"
+                showCloseButton={true}
+            >
+                <div className="p-2">
+                    <div className="text-center mb-6">
+                        <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                            <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-xl font-bold text-secondary-900">Change Email</h2>
+                        <p className="text-secondary-500 mt-2">
+                            We'll send a verification link to your new email address.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-secondary-700 mb-2">
+                                New Email Address
+                            </label>
+                            <input
+                                type="email"
+                                value={newEmail}
+                                onChange={(e) => setNewEmail(e.target.value)}
+                                placeholder="newemail@example.com"
+                                className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-secondary-700 mb-2">
+                                Current Password
+                            </label>
+                            <input
+                                type="password"
+                                value={emailPassword}
+                                onChange={(e) => setEmailPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex space-x-3">
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            onClick={() => {
+                                setShowEmailModal(false);
+                                setNewEmail('');
+                                setEmailPassword('');
+                            }}
+                            disabled={changingEmail}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            fullWidth
+                            onClick={handleChangeEmail}
+                            loading={changingEmail}
+                            disabled={!newEmail || !emailPassword}
+                        >
+                            Change Email
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Change Password Modal */}
+            <Modal
+                isOpen={showPasswordModal}
+                onClose={() => {
+                    setShowPasswordModal(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                }}
+                size="sm"
+                showCloseButton={true}
+            >
+                <div className="p-2">
+                    <div className="text-center mb-6">
+                        <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-xl font-bold text-secondary-900">Update Password</h2>
+                        <p className="text-secondary-500 mt-2">
+                            Choose a strong password with at least 6 characters.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-secondary-700 mb-2">
+                                Current Password
+                            </label>
+                            <input
+                                type="password"
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-secondary-700 mb-2">
+                                New Password
+                            </label>
+                            <input
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-secondary-700 mb-2">
+                                Confirm New Password
+                            </label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex space-x-3">
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            onClick={() => {
+                                setShowPasswordModal(false);
+                                setCurrentPassword('');
+                                setNewPassword('');
+                                setConfirmPassword('');
+                            }}
+                            disabled={changingPassword}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            fullWidth
+                            onClick={handleChangePassword}
+                            loading={changingPassword}
+                            disabled={!currentPassword || !newPassword || !confirmPassword}
+                        >
+                            Update Password
                         </Button>
                     </div>
                 </div>

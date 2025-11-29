@@ -36,11 +36,11 @@ export default function HomePage() {
         : properties;
 
     return (
-        <div>
+        <div className="w-full max-w-full overflow-x-hidden">
             {/* Category Filter */}
             <div className="border-b border-secondary-200 sticky top-[80px] bg-white z-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center space-x-8 py-4 overflow-x-auto scrollbar-hide">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+                    <div className="flex items-center space-x-4 sm:space-x-8 py-3 sm:py-4 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
                         <button
                             onClick={() => setSelectedCategory(null)}
                             className={`flex flex-col items-center space-y-2 min-w-fit pb-2 border-b-2 transition-colors ${selectedCategory === null
@@ -72,7 +72,7 @@ export default function HomePage() {
             </div>
 
             {/* Properties Grid */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
                 {loading ? (
                     <div className="flex justify-center py-20">
                         <Spinner size="lg" />

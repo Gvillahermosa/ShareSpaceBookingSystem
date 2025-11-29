@@ -168,15 +168,25 @@ export default function NotificationDropdown() {
                 <>
                     {/* Backdrop */}
                     <div
-                        className="fixed inset-0 z-40"
+                        className="fixed inset-0 z-40 bg-black/30 md:bg-transparent"
                         onClick={() => setIsOpen(false)}
                     />
 
-                    {/* Dropdown Content */}
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-secondary-200 z-50 overflow-hidden">
+                    {/* Mobile: Full-screen slide-up panel, Desktop: Dropdown */}
+                    <div className="fixed inset-x-0 bottom-0 z-50 md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-96 bg-white md:rounded-xl shadow-lg border border-secondary-200 overflow-hidden rounded-t-2xl md:rounded-t-xl max-h-[85vh] md:max-h-[80vh] flex flex-col">
                         {/* Header */}
-                        <div className="px-4 py-3 border-b border-secondary-200 flex items-center justify-between">
-                            <h3 className="font-semibold text-lg">Notifications</h3>
+                        <div className="px-4 py-3 border-b border-secondary-200 flex items-center justify-between flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setIsOpen(false)}
+                                    className="p-1 -ml-1 text-secondary-500 hover:text-secondary-700 md:hidden"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <h3 className="font-semibold text-lg">Notifications</h3>
+                            </div>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={handleMarkAllRead}
@@ -188,7 +198,7 @@ export default function NotificationDropdown() {
                         </div>
 
                         {/* Notifications List */}
-                        <div className="max-h-96 overflow-y-auto">
+                        <div className="flex-1 overflow-y-auto">
                             {loading ? (
                                 <div className="p-8 text-center text-secondary-500">
                                     <svg className="w-8 h-8 mx-auto mb-3 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
@@ -199,7 +209,7 @@ export default function NotificationDropdown() {
                                 </div>
                             ) : error ? (
                                 <div className="p-8 text-center text-red-500">
-                                    <svg className="w-12 h-12 mx-auto mb-3 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-10 h-10 mx-auto mb-3 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                     <p className="font-medium">Error</p>
@@ -207,7 +217,7 @@ export default function NotificationDropdown() {
                                 </div>
                             ) : notifications.length === 0 ? (
                                 <div className="p-8 text-center text-secondary-500">
-                                    <svg className="w-12 h-12 mx-auto mb-3 text-secondary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-10 h-10 mx-auto mb-3 text-secondary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                     </svg>
                                     <p className="font-medium">No notifications</p>
@@ -218,15 +228,17 @@ export default function NotificationDropdown() {
                                     <div
                                         key={notification.id}
                                         onClick={() => handleNotificationClick(notification)}
-                                        className={`flex items-start space-x-3 p-4 hover:bg-secondary-50 cursor-pointer transition-colors ${!notification.read ? 'bg-primary-50' : ''
+                                        className={`flex items-start gap-3 p-4 hover:bg-secondary-50 active:bg-secondary-100 cursor-pointer transition-colors ${!notification.read ? 'bg-primary-50' : ''
                                             }`}
                                     >
-                                        {getNotificationIcon(notification.type)}
+                                        <div className="flex-shrink-0">
+                                            {getNotificationIcon(notification.type)}
+                                        </div>
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm ${!notification.read ? 'font-semibold' : 'font-medium'}`}>
                                                 {notification.title}
                                             </p>
-                                            <p className="text-sm text-secondary-600 truncate">
+                                            <p className="text-sm text-secondary-600 line-clamp-2">
                                                 {notification.body}
                                             </p>
                                             <p className="text-xs text-secondary-400 mt-1">
@@ -235,7 +247,7 @@ export default function NotificationDropdown() {
                                         </div>
                                         <button
                                             onClick={(e) => handleDelete(e, notification.id)}
-                                            className="p-1 text-secondary-400 hover:text-secondary-600 rounded"
+                                            className="flex-shrink-0 p-2 -mr-1 text-secondary-400 hover:text-secondary-600 active:text-secondary-700 rounded-full hover:bg-secondary-100"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -248,13 +260,13 @@ export default function NotificationDropdown() {
 
                         {/* Footer */}
                         {notifications.length > 0 && (
-                            <div className="px-4 py-3 border-t border-secondary-200 text-center">
+                            <div className="px-4 py-3 border-t border-secondary-200 text-center flex-shrink-0 bg-white">
                                 <button
                                     onClick={() => {
                                         navigate('/notifications');
                                         setIsOpen(false);
                                     }}
-                                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                    className="text-sm text-primary-600 hover:text-primary-700 font-medium py-2"
                                 >
                                     View all notifications
                                 </button>

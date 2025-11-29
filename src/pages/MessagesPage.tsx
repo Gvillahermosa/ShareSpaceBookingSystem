@@ -235,11 +235,11 @@ export default function MessagesPage() {
     }
 
     return (
-        <div className="h-[calc(100vh-80px)] flex">
+        <div className="h-[calc(100vh-80px)] h-[calc(100dvh-80px)] flex overflow-hidden">
             {/* Conversations List */}
-            <div className={`w-full md:w-80 border-r border-secondary-200 flex flex-col ${showMobileMessages ? 'hidden md:flex' : 'flex'}`}>
-                <div className="p-4 border-b border-secondary-200">
-                    <h1 className="text-xl font-semibold">Messages</h1>
+            <div className={`w-full md:w-80 lg:w-96 border-r border-secondary-200 flex flex-col ${showMobileMessages ? 'hidden md:flex' : 'flex'}`}>
+                <div className="p-3 sm:p-4 border-b border-secondary-200">
+                    <h1 className="text-lg sm:text-xl font-semibold">Messages</h1>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">

@@ -46,9 +46,12 @@ export default function EarningsSummary({ period = 'month' }: EarningsSummaryPro
     };
 
     const filteredBookings = bookings.filter((booking) => {
+        if (selectedPeriod === 'all') return true;
+
         const { start, end } = getDateRange();
-        const checkOut = booking.checkOut.toDate();
-        return checkOut >= start && checkOut <= end;
+        // Use booking creation date or checkIn date for filtering (more intuitive for hosts)
+        const bookingDate = booking.createdAt?.toDate?.() || booking.checkIn?.toDate?.() || new Date();
+        return bookingDate >= start && bookingDate <= end;
     });
 
     const calculateEarnings = () => {
@@ -82,9 +85,9 @@ export default function EarningsSummary({ period = 'month' }: EarningsSummaryPro
         });
 
         return days.map((day) => {
-            const dayBookings = filteredBookings.filter((b) => {
-                const checkOut = b.checkOut.toDate();
-                return format(checkOut, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+            const dayBookings = bookings.filter((b) => {
+                const bookingDate = b.createdAt?.toDate?.() || b.checkIn?.toDate?.() || new Date();
+                return format(bookingDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
             });
             const earnings = dayBookings.reduce((sum, b) => sum + b.pricing.total, 0);
             return { date: day, earnings };

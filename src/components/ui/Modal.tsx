@@ -41,15 +41,15 @@ export function Modal({
     if (!isOpen) return null;
 
     const sizes = {
-        sm: 'max-w-md',
-        md: 'max-w-lg',
-        lg: 'max-w-2xl',
-        xl: 'max-w-4xl',
-        full: 'max-w-full mx-4',
+        sm: 'max-w-md w-[calc(100%-2rem)]',
+        md: 'max-w-lg w-[calc(100%-2rem)]',
+        lg: 'max-w-2xl w-[calc(100%-2rem)]',
+        xl: 'max-w-4xl w-[calc(100%-2rem)]',
+        full: 'max-w-full w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)]',
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
             {/* Backdrop with blur */}
             <div
                 className="fixed inset-0 bg-secondary-900/60 backdrop-blur-sm transition-opacity"
@@ -57,14 +57,17 @@ export function Modal({
             />
 
             {/* Modal */}
-            <div className="flex min-h-full items-center justify-center p-4">
+            <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
                 <div
                     className={`
-                        relative bg-white rounded-2xl shadow-2xl
-                        w-full ${sizes[size]}
+                        relative bg-white rounded-xl sm:rounded-2xl shadow-2xl
+                        ${sizes[size]}
                         transform transition-all
                         animate-in fade-in zoom-in-95 duration-200
                         ring-1 ring-secondary-200/50
+                        max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)]
+                        max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)]
+                        overflow-y-auto overscroll-contain
                     `}
                     onClick={(e) => e.stopPropagation()}
                 >

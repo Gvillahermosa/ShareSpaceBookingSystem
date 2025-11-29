@@ -89,12 +89,12 @@ export default function PropertyDetailPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
             {/* Title Section */}
-            <div className="mb-6">
-                <h1 className="text-2xl md:text-3xl font-semibold mb-2">{property.title}</h1>
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center space-x-2 text-sm">
+            <div className="mb-4 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold mb-2">{property.title}</h1>
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+                    <div className="flex flex-wrap items-center gap-1 sm:space-x-2 text-xs sm:text-sm">
                         <div className="flex items-center">
                             <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -139,7 +139,7 @@ export default function PropertyDetailPage() {
             <PhotoGallery photos={property.photos} title={property.title} />
 
             {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 mt-6 sm:mt-8">
                 {/* Left Column - Property Info */}
                 <div className="lg:col-span-2">
                     {/* Property Overview */}

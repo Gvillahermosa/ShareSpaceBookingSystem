@@ -130,17 +130,17 @@ export default function TripsPage() {
     ];
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-8">
-            <h1 className="text-3xl font-semibold mb-8">Trips</h1>
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+            <h1 className="text-2xl sm:text-3xl font-semibold mb-4 sm:mb-8">Trips</h1>
 
             {/* Tabs */}
-            <div className="border-b border-secondary-200 mb-8">
-                <div className="flex space-x-8">
+            <div className="border-b border-secondary-200 mb-4 sm:mb-8 overflow-x-auto">
+                <div className="flex space-x-4 sm:space-x-8 min-w-max">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`pb-4 font-medium transition-colors relative ${activeTab === tab.id
+                            className={`pb-3 sm:pb-4 text-sm sm:text-base font-medium transition-colors relative whitespace-nowrap ${activeTab === tab.id
                                 ? 'text-secondary-900'
                                 : 'text-secondary-500 hover:text-secondary-700'
                                 }`}

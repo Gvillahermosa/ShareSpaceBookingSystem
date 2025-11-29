@@ -89,26 +89,26 @@ export default function Footer() {
 
                 {/* Bottom Bar */}
                 <div className="border-t border-secondary-200 pt-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         {/* Copyright */}
-                        <div className="flex items-center space-x-4 text-sm text-secondary-600">
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-2 gap-y-1 text-sm text-secondary-600">
                             <span>© {currentYear} ShareSpace, Inc.</span>
-                            <span>·</span>
+                            <span className="hidden sm:inline">·</span>
                             <Link to="/privacy" className="hover:underline">
                                 Privacy
                             </Link>
-                            <span>·</span>
+                            <span className="hidden sm:inline">·</span>
                             <Link to="/terms" className="hover:underline">
                                 Terms
                             </Link>
-                            <span>·</span>
+                            <span className="hidden sm:inline">·</span>
                             <Link to="/sitemap" className="hover:underline">
                                 Sitemap
                             </Link>
                         </div>
 
                         {/* Social Links */}
-                        <div className="flex items-center space-x-4 mt-4 md:mt-0">
+                        <div className="flex flex-wrap items-center justify-center gap-4">
                             <button className="flex items-center space-x-2 text-sm text-secondary-600 hover:text-secondary-900">
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path

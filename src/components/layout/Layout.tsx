@@ -9,9 +9,9 @@ interface LayoutProps {
 
 export default function Layout({ hideFooter = false }: LayoutProps) {
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen min-h-[100dvh] flex flex-col w-full max-w-full overflow-x-hidden bg-white">
             <Header />
-            <main className="flex-1">
+            <main className="flex-1 w-full max-w-full overflow-x-hidden">
                 <Outlet />
             </main>
             {!hideFooter && <Footer />}

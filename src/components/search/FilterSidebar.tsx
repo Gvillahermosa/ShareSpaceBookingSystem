@@ -66,19 +66,19 @@ export default function FilterSidebar({ onClose }: FilterSidebarProps) {
     };
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="h-full flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
                 {/* Price Range */}
                 <div>
-                    <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-secondary-900 mb-3 sm:mb-4">
                         Price range
                     </h3>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
                         <div className="flex-1">
-                            <label className="text-sm text-secondary-600">Minimum</label>
+                            <label className="text-xs sm:text-sm text-secondary-600">Minimum</label>
                             <div className="relative mt-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-500">
-                                    $
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-500 text-sm">
+                                    ₱
                                 </span>
                                 <input
                                     type="number"
@@ -86,16 +86,16 @@ export default function FilterSidebar({ onClose }: FilterSidebarProps) {
                                     onChange={(e) =>
                                         setPriceRange({ ...priceRange, min: Number(e.target.value) })
                                     }
-                                    className="w-full pl-7 pr-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    className="w-full pl-7 pr-3 py-2 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
                         <span className="text-secondary-400 pt-6">-</span>
                         <div className="flex-1">
-                            <label className="text-sm text-secondary-600">Maximum</label>
+                            <label className="text-xs sm:text-sm text-secondary-600">Maximum</label>
                             <div className="relative mt-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-500">
-                                    $
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-500 text-sm">
+                                    ₱
                                 </span>
                                 <input
                                     type="number"

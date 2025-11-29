@@ -52,11 +52,11 @@ export default function WishlistsPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-semibold">Wishlists</h1>
-                <p className="text-secondary-500 mt-1">
+            <div className="mb-4 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-semibold">Wishlists</h1>
+                <p className="text-secondary-500 mt-1 text-sm sm:text-base">
                     {wishlistProperties.length} saved {wishlistProperties.length === 1 ? 'place' : 'places'}
                 </p>
             </div>

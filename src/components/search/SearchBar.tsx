@@ -130,18 +130,21 @@ export default function SearchBar({ compact = false }: SearchBarProps) {
     // Compact view - clickable bar that expands
     if (compact && !isExpanded) {
         return (
-            <button
-                onClick={() => setIsExpanded(true)}
-                className="flex items-center w-full px-4 py-2 border border-secondary-200 rounded-full shadow-sm hover:shadow-md transition-shadow bg-white"
-            >
-                <div className="flex items-center space-x-4 text-sm">
+            <div className="flex items-center w-full px-4 py-2 border border-secondary-200 rounded-full shadow-sm hover:shadow-md transition-shadow bg-white">
+                <button
+                    onClick={() => setIsExpanded(true)}
+                    className="flex items-center space-x-4 text-sm flex-1"
+                >
                     <span className="font-medium">{location || 'Anywhere'}</span>
                     <span className="text-secondary-300">|</span>
                     <span className="font-medium">{formatDateRange()}</span>
                     <span className="text-secondary-300">|</span>
                     <span className="text-secondary-400">{formatGuests()}</span>
-                </div>
-                <div className="ml-auto p-2 bg-primary-500 rounded-full">
+                </button>
+                <button
+                    onClick={handleSearch}
+                    className="ml-auto p-2 bg-primary-500 rounded-full hover:bg-primary-600 transition-colors"
+                >
                     <svg
                         className="w-4 h-4 text-white"
                         fill="none"
@@ -155,8 +158,8 @@ export default function SearchBar({ compact = false }: SearchBarProps) {
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                         />
                     </svg>
-                </div>
-            </button>
+                </button>
+            </div>
         );
     }
 
