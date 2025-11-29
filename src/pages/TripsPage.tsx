@@ -55,10 +55,10 @@ export default function TripsPage() {
     }, [currentUser]);
 
     // Safely convert dates (handle both Timestamp and Date objects)
-    const toDate = (date: any): Date => {
+    const toDate = (date: Date | { toDate: () => Date } | { seconds: number } | string | number): Date => {
         if (date instanceof Date) return date;
-        if (date?.toDate) return date.toDate();
-        if (date?.seconds) return new Date(date.seconds * 1000);
+        if (typeof date === 'object' && date !== null && 'toDate' in date) return date.toDate();
+        if (typeof date === 'object' && date !== null && 'seconds' in date) return new Date(date.seconds * 1000);
         return new Date(date);
     };
 

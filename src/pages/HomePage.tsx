@@ -19,9 +19,10 @@ export default function HomePage() {
                 const data = await getAllProperties();
                 console.log('Fetched properties:', data);
                 setProperties(data);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('Error fetching properties:', error);
-                setError(error.message || 'Failed to load properties');
+                const errorMessage = error instanceof Error ? error.message : 'Failed to load properties';
+                setError(errorMessage);
             } finally {
                 setLoading(false);
             }

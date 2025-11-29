@@ -99,10 +99,11 @@ export default function BookingConfirmation() {
                     ? 'Booking confirmed!'
                     : 'Booking request sent to host'
             );
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as { code?: string; message?: string };
             console.error('Error creating booking:', error);
-            console.error('Error code:', error?.code);
-            console.error('Error message:', error?.message);
+            console.error('Error code:', err?.code);
+            console.error('Error message:', err?.message);
             toast.error('Failed to create booking. Please try again.');
         } finally {
             setSubmitting(false);

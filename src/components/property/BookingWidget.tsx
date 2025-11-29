@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import { differenceInDays, format } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 import type { Property, Booking } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUIStore, useBookingStore } from '../../store';
@@ -113,8 +114,8 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
             setCurrentBooking({
                 propertyId: property.id,
                 hostId: property.hostId,
-                checkIn: checkIn as any,
-                checkOut: checkOut as any,
+                checkIn: Timestamp.fromDate(checkIn!),
+                checkOut: Timestamp.fromDate(checkOut!),
                 guests,
                 pricing: pricing!,
             });

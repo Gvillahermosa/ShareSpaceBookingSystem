@@ -99,8 +99,9 @@ export async function getGuestBookings(guestId: string): Promise<Booking[]> {
             id: doc.id,
             ...doc.data(),
         })) as Booking[];
-    } catch (error: any) {
-        console.warn('getGuestBookings: Ordered query failed:', error?.code, error?.message);
+    } catch (error: unknown) {
+        const err = error as { code?: string; message?: string };
+        console.warn('getGuestBookings: Ordered query failed:', err?.code, err?.message);
 
         // Fallback: query without ordering
         const q = query(
@@ -141,8 +142,9 @@ export async function getHostBookings(hostId: string): Promise<Booking[]> {
             id: doc.id,
             ...doc.data(),
         })) as Booking[];
-    } catch (error: any) {
-        console.warn('getHostBookings: Ordered query failed:', error?.code, error?.message);
+    } catch (error: unknown) {
+        const err = error as { code?: string; message?: string };
+        console.warn('getHostBookings: Ordered query failed:', err?.code, err?.message);
 
         // Fallback: query without ordering
         const q = query(

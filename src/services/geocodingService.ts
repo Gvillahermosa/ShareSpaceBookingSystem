@@ -114,7 +114,7 @@ export async function getLocationSuggestions(
 
         const data = await response.json();
 
-        return data.map((item: any) => ({
+        return data.map((item: { display_name: string; lat: string; lon: string; type: string }) => ({
             displayName: item.display_name,
             lat: parseFloat(item.lat),
             lng: parseFloat(item.lon),

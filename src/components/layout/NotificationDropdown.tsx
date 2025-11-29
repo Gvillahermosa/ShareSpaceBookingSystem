@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,12 +10,14 @@ import {
 } from '../../services/notificationService';
 import type { Notification } from '../../types';
 
+type TimestampLike = Date | { toDate: () => Date } | { seconds: number } | string | number | null | undefined;
+
 // Helper to safely convert timestamp to Date
-const toDate = (timestamp: any): Date => {
+const toDate = (timestamp: TimestampLike): Date => {
     if (!timestamp) return new Date();
-    if (timestamp.toDate) return timestamp.toDate();
-    if (timestamp.seconds) return new Date(timestamp.seconds * 1000);
     if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp === 'object' && 'toDate' in timestamp) return timestamp.toDate();
+    if (typeof timestamp === 'object' && 'seconds' in timestamp) return new Date(timestamp.seconds * 1000);
     return new Date(timestamp);
 };
 
@@ -27,34 +29,35 @@ export default function NotificationDropdown() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const unreadCount = notifications.filter((n) => !n.read).length;
+    const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 
     useEffect(() => {
         if (!currentUser) {
-            setLoading(false);
             return;
         }
 
         console.log('NotificationDropdown: Subscribing to notifications for user:', currentUser.uid);
-        setLoading(true);
-        setError(null);
 
-        try {
-            const unsubscribe = subscribeToNotifications(currentUser.uid, (notifs) => {
+        let isSubscribed = true;
+        let hasReceivedData = false;
+
+        const unsubscribe = subscribeToNotifications(currentUser.uid, (notifs) => {
+            if (isSubscribed) {
                 console.log('NotificationDropdown: Received', notifs.length, 'notifications');
                 setNotifications(notifs);
-                setLoading(false);
-            });
+                if (!hasReceivedData) {
+                    hasReceivedData = true;
+                    setLoading(false);
+                    setError(null);
+                }
+            }
+        });
 
-            return () => {
-                console.log('NotificationDropdown: Unsubscribing');
-                unsubscribe();
-            };
-        } catch (err) {
-            console.error('NotificationDropdown: Error subscribing:', err);
-            setError('Failed to load notifications');
-            setLoading(false);
-        }
+        return () => {
+            isSubscribed = false;
+            console.log('NotificationDropdown: Unsubscribing');
+            unsubscribe();
+        };
     }, [currentUser]);
 
     const handleNotificationClick = async (notification: Notification) => {

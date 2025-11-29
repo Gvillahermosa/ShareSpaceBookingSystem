@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUIStore } from '../../store';
@@ -13,7 +12,6 @@ export default function Header() {
     const navigate = useNavigate();
     const location = useLocation();
     const { openLoginModal, openSignupModal } = useUIStore();
-    const [_isMobileMenuOpen, _setIsMobileMenuOpen] = useState(false);
 
     const isHomePage = location.pathname === '/';
     const isHostPage = location.pathname.startsWith('/host');
@@ -182,15 +180,6 @@ export default function Header() {
                     </div>
                 </div>
             </div>
-
-            {/* Mobile Menu */}
-            {_isMobileMenuOpen && (
-                <div className="md:hidden border-t border-secondary-200 py-4">
-                    <div className="px-4 space-y-4">
-                        <SearchBar />
-                    </div>
-                </div>
-            )}
         </header>
     );
 }

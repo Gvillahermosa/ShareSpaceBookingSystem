@@ -72,17 +72,22 @@ export function useWindowSize() {
 
 // Media query hook
 export function useMediaQuery(query: string): boolean {
-    const [matches, setMatches] = useState(false);
+    const getMatches = (query: string): boolean => {
+        if (typeof window !== 'undefined') {
+            return window.matchMedia(query).matches;
+        }
+        return false;
+    };
+
+    const [matches, setMatches] = useState<boolean>(() => getMatches(query));
 
     useEffect(() => {
         const media = window.matchMedia(query);
-        if (media.matches !== matches) {
-            setMatches(media.matches);
-        }
-        const listener = () => setMatches(media.matches);
+        const listener = (event: MediaQueryListEvent) => setMatches(event.matches);
+
         media.addEventListener('change', listener);
         return () => media.removeEventListener('change', listener);
-    }, [matches, query]);
+    }, [query]);
 
     return matches;
 }
@@ -165,11 +170,13 @@ export function useToggle(
 
 // Previous value hook
 export function usePrevious<T>(value: T): T | undefined {
-    const ref = useRef<T | undefined>(undefined);
+    const [previous, setPrevious] = useState<T | undefined>(undefined);
+
     useEffect(() => {
-        ref.current = value;
-    });
-    return ref.current;
+        setPrevious(value);
+    }, [value]);
+
+    return previous;
 }
 
 // Async hook
@@ -192,8 +199,9 @@ export function useAsync<T, E = string>(
         try {
             const result = await asyncFunction();
             setData(result);
-        } catch (err: any) {
-            setError(err.message || 'An error occurred');
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+            setError(errorMessage as E);
         } finally {
             setLoading(false);
         }

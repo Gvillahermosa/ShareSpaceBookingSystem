@@ -16,12 +16,14 @@ import { Avatar, Spinner, Button } from '../components/ui';
 import { ConfirmDialog } from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 
+type TimestampLike = Date | { toDate: () => Date } | { seconds: number } | string | number | null | undefined;
+
 // Helper to safely convert timestamp to Date
-const toDate = (timestamp: any): Date => {
+const toDate = (timestamp: TimestampLike): Date => {
     if (!timestamp) return new Date();
-    if (timestamp.toDate) return timestamp.toDate();
-    if (timestamp.seconds) return new Date(timestamp.seconds * 1000);
     if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp === 'object' && 'toDate' in timestamp) return timestamp.toDate();
+    if (typeof timestamp === 'object' && 'seconds' in timestamp) return new Date(timestamp.seconds * 1000);
     return new Date(timestamp);
 };
 

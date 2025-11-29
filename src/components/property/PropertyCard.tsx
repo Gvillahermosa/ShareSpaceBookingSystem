@@ -43,7 +43,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             const { added } = await togglePropertyInWishlist(currentUser.uid, property.id);
             setIsWishlisted(added);
             toast.success(added ? 'Saved to wishlist' : 'Removed from wishlist');
-        } catch (error) {
+        } catch {
             toast.error('Failed to update wishlist');
         } finally {
             setIsLoadingWishlist(false);

@@ -328,7 +328,7 @@ export async function checkPropertyAvailability(
                     return false;
                 }
             }
-        } catch (queryError: any) {
+        } catch (queryError: unknown) {
             console.error('checkPropertyAvailability: Query error:', queryError);
             // Don't allow booking if we can't verify availability
             return false;
@@ -362,11 +362,12 @@ export async function getAllProperties(): Promise<Property[]> {
             id: doc.id,
             ...doc.data(),
         })) as Property[];
-    } catch (error: any) {
-        console.warn('getAllProperties: First query failed:', error?.code, error?.message);
+    } catch (error: unknown) {
+        const err = error as { code?: string; message?: string };
+        console.warn('getAllProperties: First query failed:', err?.code, err?.message);
 
         // If index error, try without ordering
-        if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
+        if (err?.code === 'failed-precondition' || err?.message?.includes('index')) {
             console.warn('Firestore index not found, fetching without order. Please create the required index.');
             try {
                 const q = query(
@@ -386,8 +387,9 @@ export async function getAllProperties(): Promise<Property[]> {
                     const dateB = b.createdAt?.toDate?.() || new Date(0);
                     return dateB.getTime() - dateA.getTime();
                 });
-            } catch (innerError: any) {
-                console.warn('getAllProperties: Status query also failed:', innerError?.message);
+            } catch (innerError: unknown) {
+                const innerErr = innerError as { message?: string };
+                console.warn('getAllProperties: Status query also failed:', innerErr?.message);
             }
         }
 
@@ -496,11 +498,12 @@ export async function getHostProperties(hostId: string): Promise<Property[]> {
             id: doc.id,
             ...doc.data(),
         })) as Property[];
-    } catch (error: any) {
-        console.warn('getHostProperties: Ordered query failed:', error?.code, error?.message);
+    } catch (error: unknown) {
+        const err = error as { code?: string; message?: string };
+        console.warn('getHostProperties: Ordered query failed:', err?.code, err?.message);
 
         // If index error, try without ordering
-        if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
+        if (err?.code === 'failed-precondition' || err?.message?.includes('index')) {
             console.warn('Firestore index not found for host properties, fetching without order.');
         }
 

@@ -4,12 +4,14 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDropzone } from 'react-dropzone';
+import { GeoPoint } from 'firebase/firestore';
 import { PROPERTY_TYPES, AMENITY_CATEGORIES, CANCELLATION_POLICIES } from '../../config/constants';
 import { createProperty } from '../../services/propertyService';
 import { uploadPropertyPhoto } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { LocationPicker } from '../map/PropertyMap';
 import { Button, Input } from '../ui';
+import type { PropertyType, CancellationPolicy } from '../../types';
 import toast from 'react-hot-toast';
 
 const propertySchema = z.object({
@@ -70,7 +72,6 @@ export default function ListingWizard() {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
     const [currentStep, setCurrentStep] = useState(0);
-    const [_uploading, _setUploading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [uploadedPhotos, setUploadedPhotos] = useState<{ file: File; preview: string }[]>([]);
 
@@ -206,17 +207,17 @@ export default function ListingWizard() {
                 hostId: currentUser.uid,
                 title: data.title,
                 description: data.description,
-                propertyType: data.propertyType,
+                propertyType: data.propertyType as PropertyType,
                 location: {
                     address: data.location.address,
                     city: data.location.city,
                     state: data.location.state,
                     country: data.location.country,
                     zipCode: data.location.zipCode || '',
-                    coordinates: {
-                        latitude: data.location.coordinates.lat || 0,
-                        longitude: data.location.coordinates.lng || 0,
-                    },
+                    coordinates: new GeoPoint(
+                        data.location.coordinates.lat || 0,
+                        data.location.coordinates.lng || 0
+                    ),
                 },
                 pricing: {
                     basePrice: data.pricing.basePrice,
@@ -233,7 +234,7 @@ export default function ListingWizard() {
                 houseRules: houseRulesArray,
                 checkInTime: data.houseRules.checkInTime,
                 checkOutTime: data.houseRules.checkOutTime,
-                cancellationPolicy: data.cancellationPolicy,
+                cancellationPolicy: data.cancellationPolicy as CancellationPolicy,
                 instantBook: data.instantBook,
                 minimumStay: data.minimumStay,
                 maximumStay: data.maximumStay,
@@ -242,10 +243,11 @@ export default function ListingWizard() {
                 blockedDates: [],
                 averageRating: 0,
                 reviewCount: 0,
+                status: 'active' as const,
             };
 
             toast.loading('Creating your listing...', { id: 'create' });
-            const propertyId = await createProperty(propertyData as any);
+            const propertyId = await createProperty(propertyData);
             toast.dismiss('create');
             toast.success('Property listed successfully!');
             navigate(`/property/${propertyId}`);
@@ -260,21 +262,21 @@ export default function ListingWizard() {
     };
 
     // Handle form errors
-    const onError = (errors: any) => {
+    const onError = () => {
         console.log('Form validation errors:', errors);
 
         // Find the first error and show it
         const errorMessages: string[] = [];
 
         if (errors.propertyType) errorMessages.push('Please select a property type');
-        if (errors.title) errorMessages.push(errors.title.message);
-        if (errors.description) errorMessages.push(errors.description.message);
+        if (errors.title) errorMessages.push(errors.title.message || 'Title is required');
+        if (errors.description) errorMessages.push(errors.description.message || 'Description is required');
         if (errors.location?.address) errorMessages.push('Please enter a valid address');
         if (errors.location?.city) errorMessages.push('Please enter a city');
         if (errors.location?.state) errorMessages.push('Please enter a state/province');
         if (errors.location?.country) errorMessages.push('Please enter a country');
         if (errors.photos) errorMessages.push(errors.photos.message || 'Please upload at least 1 photo');
-        if (errors.pricing?.basePrice) errorMessages.push(errors.pricing.basePrice.message);
+        if (errors.pricing?.basePrice) errorMessages.push(errors.pricing.basePrice.message || 'Please set a base price');
 
         if (errorMessages.length > 0) {
             toast.error(errorMessages[0]);
@@ -750,7 +752,7 @@ export default function ListingWizard() {
                     </div>
                 );
 
-            case 'review':
+            case 'review': {
                 // Check for missing required fields
                 const missingFields: string[] = [];
                 if (!watchedValues.propertyType) missingFields.push('Property type');
@@ -847,6 +849,7 @@ export default function ListingWizard() {
                         )}
                     </div>
                 );
+            }
 
             default:
                 return null;

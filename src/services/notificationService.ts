@@ -67,8 +67,9 @@ export async function getUserNotifications(
             id: doc.id,
             ...doc.data(),
         })) as Notification[];
-    } catch (error: any) {
-        console.warn('getUserNotifications ordered query failed:', error?.message);
+    } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.warn('getUserNotifications ordered query failed:', err?.message);
 
         // Fallback without ordering
         try {

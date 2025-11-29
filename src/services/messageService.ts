@@ -51,8 +51,9 @@ export async function getUserConversations(userId: string): Promise<Conversation
             id: doc.id,
             ...doc.data(),
         })) as Conversation[];
-    } catch (error: any) {
-        console.warn('getUserConversations: Ordered query failed, trying without order:', error?.message);
+    } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.warn('getUserConversations: Ordered query failed, trying without order:', err?.message);
 
         // Fallback without ordering
         try {
@@ -108,7 +109,7 @@ export async function getOrCreateConversation(
         }
 
         // Create new conversation - only include defined fields
-        const newConversation: Record<string, any> = {
+        const newConversation: Record<string, unknown> = {
             participants: [userId1, userId2],
             lastMessage: {
                 id: '',
@@ -137,11 +138,12 @@ export async function getOrCreateConversation(
         const docRef = await addDoc(collection(db, CONVERSATIONS_COLLECTION), newConversation);
         console.log('Conversation created with ID:', docRef.id);
         return { id: docRef.id, ...newConversation } as Conversation;
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const err = error as { code?: string; message?: string };
         console.error('getOrCreateConversation error:', error);
-        console.error('Error code:', error?.code);
-        console.error('Error message:', error?.message);
-        throw new Error(`Failed to create conversation: ${error?.message || 'Unknown error'}`);
+        console.error('Error code:', err?.code);
+        console.error('Error message:', err?.message);
+        throw new Error(`Failed to create conversation: ${err?.message || 'Unknown error'}`);
     }
 }
 
@@ -164,7 +166,7 @@ export async function sendMessage(
         const recipientId = conversation.participants.find((p) => p !== senderId);
 
         // Build message object without undefined fields
-        const newMessage: Record<string, any> = {
+        const newMessage: Record<string, unknown> = {
             id: `msg_${Date.now()}`,
             senderId,
             text,
@@ -178,7 +180,7 @@ export async function sendMessage(
         }
 
         // Build update object for conversation
-        const updateData: Record<string, any> = {
+        const updateData: Record<string, unknown> = {
             lastMessage: newMessage,
             lastMessageTime: Timestamp.now(),
         };
@@ -204,8 +206,8 @@ export async function sendMessage(
             await notifyNewMessage(recipientId, senderName, conversationId);
         }
 
-        return newMessage as Message;
-    } catch (error: any) {
+        return newMessage as unknown as Message;
+    } catch (error: unknown) {
         console.error('sendMessage error:', error);
         throw error;
     }
@@ -230,8 +232,9 @@ export async function getMessages(
                 ...doc.data(),
             } as Message))
             .reverse();
-    } catch (error: any) {
-        console.warn('getMessages: Ordered query failed, trying without order:', error?.message);
+    } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.warn('getMessages: Ordered query failed, trying without order:', err?.message);
 
         // Fallback without ordering
         try {

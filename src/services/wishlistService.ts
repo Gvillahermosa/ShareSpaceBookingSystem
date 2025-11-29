@@ -113,7 +113,7 @@ export async function togglePropertyInWishlist(
     propertyId: string
 ): Promise<{ added: boolean; wishlistId: string }> {
     // Get or create default wishlist
-    let wishlists = await getUserWishlists(userId);
+    const wishlists = await getUserWishlists(userId);
     let defaultWishlist = wishlists.find((w) => w.name === 'Favorites');
 
     if (!defaultWishlist) {

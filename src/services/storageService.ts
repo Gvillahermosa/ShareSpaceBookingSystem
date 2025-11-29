@@ -131,7 +131,7 @@ export async function deletePropertyPhoto(
             const storageRef = ref(storage, `properties/${propertyId}/${photoId}.${ext}`);
             await deleteObject(storageRef);
             return;
-        } catch (error) {
+        } catch {
             // Continue trying other extensions
         }
     }
