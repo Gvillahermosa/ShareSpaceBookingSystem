@@ -120,18 +120,40 @@ function FitBounds({ properties }: { properties: Property[] }) {
     const map = useMap();
 
     useEffect(() => {
-        if (properties.length > 0) {
+        // Filter properties with valid coordinates
+        const validProperties = properties.filter(hasValidCoordinates);
+
+        if (validProperties.length > 0) {
             const bounds = new LatLngBounds(
-                properties.map((p) => [
-                    p.location.coordinates.latitude,
-                    p.location.coordinates.longitude,
-                ] as [number, number])
+                validProperties.map((p) => getCoordinates(p))
             );
             map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         }
     }, [properties, map]);
 
     return null;
+}
+
+// Helper function to check if coordinates are valid
+function hasValidCoordinates(property: Property): boolean {
+    const coords = property.location?.coordinates;
+    if (!coords) return false;
+
+    // Handle both GeoPoint object and plain object with lat/lng
+    const lat = typeof coords.latitude === 'number' ? coords.latitude : (coords as unknown as { lat: number }).lat;
+    const lng = typeof coords.longitude === 'number' ? coords.longitude : (coords as unknown as { lng: number }).lng;
+
+    // Check for valid coordinates (not 0,0 which is the default)
+    return lat !== 0 || lng !== 0;
+}
+
+// Helper function to get coordinates from property
+function getCoordinates(property: Property): [number, number] {
+    const coords = property.location.coordinates;
+    // Handle both GeoPoint object and plain object with lat/lng
+    const lat = typeof coords.latitude === 'number' ? coords.latitude : (coords as unknown as { lat: number }).lat;
+    const lng = typeof coords.longitude === 'number' ? coords.longitude : (coords as unknown as { lng: number }).lng;
+    return [lat, lng];
 }
 
 export default function PropertyMap({
@@ -143,12 +165,19 @@ export default function PropertyMap({
     showClusters = true,
     className = 'h-full w-full min-h-[400px]',
 }: PropertyMapProps) {
+    // Filter properties with valid coordinates
+    const validProperties = useMemo(() => {
+        const valid = properties.filter(hasValidCoordinates);
+        const invalidCount = properties.length - valid.length;
+        if (invalidCount > 0) {
+            console.warn(`PropertyMap: ${invalidCount} property(ies) hidden due to missing/invalid coordinates (0,0)`);
+        }
+        return valid;
+    }, [properties]);
+
     const markers = useMemo(() => {
-        return properties.map((property) => {
-            const position: [number, number] = [
-                property.location.coordinates.latitude,
-                property.location.coordinates.longitude,
-            ];
+        return validProperties.map((property) => {
+            const position = getCoordinates(property);
             const isActive = activePropertyId === property.id;
 
             return (
@@ -166,7 +195,7 @@ export default function PropertyMap({
                 </Marker>
             );
         });
-    }, [properties, activePropertyId, onPropertyClick]);
+    }, [validProperties, activePropertyId, onPropertyClick]);
 
     return (
         <MapContainer
@@ -181,7 +210,7 @@ export default function PropertyMap({
                 url={MAP_CONFIG.TILE_URL}
             />
 
-            {properties.length > 0 && <FitBounds properties={properties} />}
+            {validProperties.length > 0 && <FitBounds properties={validProperties} />}
 
             {showClusters ? (
                 <MarkerClusterGroup

@@ -30,7 +30,7 @@ export default function SearchPage() {
         propertyType: (searchParams.get('types')?.split(',').filter(Boolean) || []) as PropertyType[],
         priceRange: {
             min: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : 0,
-            max: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : 10000,
+            max: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : 100000,
         },
         bedrooms: searchParams.get('bedrooms') ? parseInt(searchParams.get('bedrooms')!) : undefined,
         beds: searchParams.get('beds') ? parseInt(searchParams.get('beds')!) : undefined,
@@ -179,8 +179,8 @@ export default function SearchPage() {
                             </div>
                         ) : (
                             <div className={`grid gap-3 sm:gap-4 lg:gap-6 ${showMap
-                                    ? 'grid-cols-1 xl:grid-cols-2'
-                                    : 'grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                                ? 'grid-cols-1 xl:grid-cols-2'
+                                : 'grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
                                 }`}>
                                 {properties.map((property) => (
                                     <div

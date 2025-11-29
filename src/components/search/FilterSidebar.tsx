@@ -13,7 +13,7 @@ export default function FilterSidebar({ onClose }: FilterSidebarProps) {
 
     const [priceRange, setPriceRange] = useState({
         min: filters.priceRange?.min || 0,
-        max: filters.priceRange?.max || 1000,
+        max: filters.priceRange?.max || 50000,
     });
     const [selectedTypes, setSelectedTypes] = useState<PropertyType[]>(
         filters.propertyType || []
@@ -56,7 +56,7 @@ export default function FilterSidebar({ onClose }: FilterSidebarProps) {
     };
 
     const handleClear = () => {
-        setPriceRange({ min: 0, max: 1000 });
+        setPriceRange({ min: 0, max: 50000 });
         setSelectedTypes([]);
         setBedrooms(0);
         setBathrooms(0);

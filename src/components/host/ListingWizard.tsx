@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDropzone } from 'react-dropzone';
 import { GeoPoint } from 'firebase/firestore';
 import { PROPERTY_TYPES, AMENITY_CATEGORIES, CANCELLATION_POLICIES } from '../../config/constants';
-import { createProperty } from '../../services/propertyService';
+import { createProperty, getProperty, updateProperty } from '../../services/propertyService';
 import { uploadPropertyPhoto } from '../../services/storageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { LocationPicker } from '../map/PropertyMap';
-import { Button, Input } from '../ui';
+import { Button, Input, Spinner } from '../ui';
 import type { PropertyType, CancellationPolicy } from '../../types';
 import toast from 'react-hot-toast';
 
@@ -27,7 +27,10 @@ const propertySchema = z.object({
         coordinates: z.object({
             lat: z.number(),
             lng: z.number(),
-        }),
+        }).refine(
+            (coords) => coords.lat !== 0 || coords.lng !== 0,
+            { message: 'Please click on the map to set your property location' }
+        ),
     }),
     bedrooms: z.number().min(0).max(50),
     beds: z.number().min(1).max(50),
@@ -70,10 +73,14 @@ const STEPS = [
 
 export default function ListingWizard() {
     const navigate = useNavigate();
+    const { id: propertyId } = useParams<{ id: string }>();
+    const isEditMode = !!propertyId;
     const { currentUser } = useAuth();
     const [currentStep, setCurrentStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
+    const [loading, setLoading] = useState(isEditMode);
     const [uploadedPhotos, setUploadedPhotos] = useState<{ file: File; preview: string }[]>([]);
+    const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string; caption?: string; order: number }[]>([]);
 
     const {
         register,
@@ -81,6 +88,7 @@ export default function ListingWizard() {
         handleSubmit,
         watch,
         setValue,
+        reset,
         formState: { errors },
     } = useForm<PropertyFormData>({
         resolver: zodResolver(propertySchema),
@@ -122,6 +130,103 @@ export default function ListingWizard() {
             instantBook: true,
         },
     });
+
+    // Load existing property data for edit mode
+    useEffect(() => {
+        const loadProperty = async () => {
+            if (!propertyId) return;
+
+            setLoading(true);
+            try {
+                const property = await getProperty(propertyId);
+                if (!property) {
+                    toast.error('Property not found');
+                    navigate('/host?tab=listings');
+                    return;
+                }
+
+                // Check if current user is the owner
+                if (property.hostId !== currentUser?.uid) {
+                    toast.error('You do not have permission to edit this property');
+                    navigate('/host?tab=listings');
+                    return;
+                }
+
+                // Parse house rules back to boolean flags
+                const houseRules = property.houseRules || [];
+                const smokingAllowed = houseRules.some(rule => rule.toLowerCase().includes('smoking allowed'));
+                const petsAllowed = houseRules.some(rule => rule.toLowerCase().includes('pets allowed'));
+                const partiesAllowed = houseRules.some(rule => rule.toLowerCase().includes('parties') && rule.toLowerCase().includes('allowed'));
+                const additionalRules = houseRules.filter(rule =>
+                    !rule.toLowerCase().includes('smoking') &&
+                    !rule.toLowerCase().includes('pets') &&
+                    !rule.toLowerCase().includes('parties')
+                );
+
+                // Get coordinates from GeoPoint
+                const coords = property.location.coordinates;
+                const lat = typeof coords.latitude === 'number' ? coords.latitude : 0;
+                const lng = typeof coords.longitude === 'number' ? coords.longitude : 0;
+
+                // Reset form with property data
+                reset({
+                    title: property.title,
+                    description: property.description,
+                    propertyType: property.propertyType,
+                    location: {
+                        address: property.location.address,
+                        city: property.location.city,
+                        state: property.location.state,
+                        country: property.location.country,
+                        zipCode: property.location.zipCode || '',
+                        coordinates: { lat, lng },
+                    },
+                    bedrooms: property.bedrooms,
+                    beds: property.beds,
+                    bathrooms: property.bathrooms,
+                    maxGuests: property.maxGuests,
+                    amenities: property.amenities,
+                    photos: property.photos || [],
+                    pricing: {
+                        basePrice: property.pricing.basePrice,
+                        cleaningFee: property.pricing.cleaningFee,
+                        weeklyDiscount: property.pricing.weeklyDiscount || 0,
+                        monthlyDiscount: property.pricing.monthlyDiscount || 0,
+                    },
+                    houseRules: {
+                        checkInTime: property.checkInTime || '15:00',
+                        checkOutTime: property.checkOutTime || '11:00',
+                        smokingAllowed,
+                        petsAllowed,
+                        partiesAllowed,
+                        additionalRules,
+                    },
+                    cancellationPolicy: property.cancellationPolicy,
+                    minimumStay: property.minimumStay,
+                    maximumStay: property.maximumStay,
+                    instantBook: property.instantBook,
+                });
+
+                // Store existing photos
+                setExistingPhotos(property.photos || []);
+            } catch (error) {
+                console.error('Error loading property:', error);
+                toast.error('Failed to load property');
+                navigate('/host?tab=listings');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadProperty();
+    }, [propertyId, currentUser, navigate, reset]);
+
+    // Update form photos value when existingPhotos changes
+    useEffect(() => {
+        if (existingPhotos.length > 0 || uploadedPhotos.length > 0) {
+            setValue('photos', [...existingPhotos, ...uploadedPhotos]);
+        }
+    }, [existingPhotos, uploadedPhotos, setValue]);
 
     // useFieldArray removed - additional rules handled directly in houseRules
 
@@ -168,18 +273,21 @@ export default function ListingWizard() {
 
         setSubmitting(true);
         try {
-            // Upload photos first
+            // Upload new photos first
             const uploadedUrls: { id: string; url: string; caption?: string; order: number }[] = [];
 
             if (uploadedPhotos.length > 0) {
                 toast.loading('Uploading photos...', { id: 'upload' });
                 for (let i = 0; i < uploadedPhotos.length; i++) {
                     const photo = uploadedPhotos[i];
-                    const result = await uploadPropertyPhoto('temp', photo.file);
-                    uploadedUrls.push({ id: result.id, url: result.url, order: i });
+                    const result = await uploadPropertyPhoto(propertyId || 'temp', photo.file);
+                    uploadedUrls.push({ id: result.id, url: result.url, order: existingPhotos.length + i });
                 }
                 toast.dismiss('upload');
             }
+
+            // Combine existing and new photos
+            const allPhotos = [...existingPhotos, ...uploadedUrls];
 
             // Convert houseRules object to array of strings
             const houseRulesArray: string[] = [];
@@ -230,7 +338,7 @@ export default function ListingWizard() {
                 beds: data.beds,
                 bathrooms: data.bathrooms,
                 amenities: data.amenities,
-                photos: uploadedUrls,
+                photos: allPhotos,
                 houseRules: houseRulesArray,
                 checkInTime: data.houseRules.checkInTime,
                 checkOutTime: data.houseRules.checkOutTime,
@@ -241,21 +349,35 @@ export default function ListingWizard() {
                 advanceNotice: 1,
                 preparationTime: 0,
                 blockedDates: [],
-                averageRating: 0,
-                reviewCount: 0,
-                status: 'active' as const,
             };
 
-            toast.loading('Creating your listing...', { id: 'create' });
-            const propertyId = await createProperty(propertyData);
-            toast.dismiss('create');
-            toast.success('Property listed successfully!');
-            navigate(`/property/${propertyId}`);
+            if (isEditMode && propertyId) {
+                // Update existing property
+                toast.loading('Updating your listing...', { id: 'update' });
+                await updateProperty(propertyId, propertyData);
+                toast.dismiss('update');
+                toast.success('Property updated successfully!');
+                navigate(`/property/${propertyId}`);
+            } else {
+                // Create new property
+                const newPropertyData = {
+                    ...propertyData,
+                    averageRating: 0,
+                    reviewCount: 0,
+                    status: 'active' as const,
+                };
+                toast.loading('Creating your listing...', { id: 'create' });
+                const newPropertyId = await createProperty(newPropertyData);
+                toast.dismiss('create');
+                toast.success('Property listed successfully!');
+                navigate(`/property/${newPropertyId}`);
+            }
         } catch (error) {
-            console.error('Error creating property:', error);
+            console.error('Error saving property:', error);
             toast.dismiss('upload');
             toast.dismiss('create');
-            toast.error('Failed to create listing. Please try again.');
+            toast.dismiss('update');
+            toast.error(`Failed to ${isEditMode ? 'update' : 'create'} listing. Please try again.`);
         } finally {
             setSubmitting(false);
         }
@@ -364,6 +486,11 @@ export default function ListingWizard() {
                                     />
                                 )}
                             />
+                            {errors.location?.coordinates && (
+                                <p className="mt-2 text-sm text-red-500">
+                                    {errors.location.coordinates.message || 'Please click on the map to set your property location'}
+                                </p>
+                            )}
                         </div>
                     </div>
                 );
@@ -495,9 +622,14 @@ export default function ListingWizard() {
             case 'photos':
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-2xl font-semibold">Add photos of your place</h2>
+                        <h2 className="text-2xl font-semibold">
+                            {isEditMode ? 'Manage photos of your place' : 'Add photos of your place'}
+                        </h2>
                         <p className="text-secondary-600">
-                            Upload at least 1 photo to help guests visualize your space.
+                            {isEditMode
+                                ? 'You can add new photos or remove existing ones.'
+                                : 'Upload at least 1 photo to help guests visualize your space.'
+                            }
                         </p>
 
                         <div
@@ -525,30 +657,71 @@ export default function ListingWizard() {
                             <p className="text-secondary-500">or click to browse</p>
                         </div>
 
+                        {/* Existing Photos (in edit mode) */}
+                        {existingPhotos.length > 0 && (
+                            <div>
+                                <h3 className="text-lg font-medium mb-3">Current Photos</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {existingPhotos.map((photo, index) => (
+                                        <div key={photo.id} className="relative group">
+                                            <img
+                                                src={photo.url}
+                                                alt={`Photo ${index + 1}`}
+                                                className="w-full h-32 object-cover rounded-lg"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setExistingPhotos(prev => prev.filter(p => p.id !== photo.id));
+                                                }}
+                                                className="absolute top-2 right-2 p-1 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                            {index === 0 && uploadedPhotos.length === 0 && (
+                                                <span className="absolute bottom-2 left-2 px-2 py-1 bg-white rounded text-xs font-medium">
+                                                    Cover photo
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* New Photos to Upload */}
                         {uploadedPhotos.length > 0 && (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {uploadedPhotos.map((photo, index) => (
-                                    <div key={index} className="relative group">
-                                        <img
-                                            src={photo.preview}
-                                            alt={`Upload ${index + 1}`}
-                                            className="w-full h-32 object-cover rounded-lg"
-                                        />
-                                        <button
-                                            onClick={() => removePhoto(index)}
-                                            className="absolute top-2 right-2 p-1 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                        {index === 0 && (
-                                            <span className="absolute bottom-2 left-2 px-2 py-1 bg-white rounded text-xs font-medium">
-                                                Cover photo
-                                            </span>
-                                        )}
-                                    </div>
-                                ))}
+                            <div>
+                                <h3 className="text-lg font-medium mb-3">
+                                    {existingPhotos.length > 0 ? 'New Photos to Add' : 'Selected Photos'}
+                                </h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {uploadedPhotos.map((photo, index) => (
+                                        <div key={index} className="relative group">
+                                            <img
+                                                src={photo.preview}
+                                                alt={`Upload ${index + 1}`}
+                                                className="w-full h-32 object-cover rounded-lg"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removePhoto(index)}
+                                                className="absolute top-2 right-2 p-1 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                            {index === 0 && existingPhotos.length === 0 && (
+                                                <span className="absolute bottom-2 left-2 px-2 py-1 bg-white rounded text-xs font-medium">
+                                                    Cover photo
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
 
@@ -856,6 +1029,15 @@ export default function ListingWizard() {
         }
     };
 
+    // Show loading spinner while fetching property data in edit mode
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <Spinner size="lg" />
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-white">
             {/* Progress Header */}
@@ -863,13 +1045,14 @@ export default function ListingWizard() {
                 <div className="max-w-4xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between mb-4">
                         <button
+                            type="button"
                             onClick={() => navigate(-1)}
                             className="text-secondary-600 hover:text-secondary-900"
                         >
                             ✕
                         </button>
                         <span className="text-sm text-secondary-500">
-                            Step {currentStep + 1} of {STEPS.length}
+                            {isEditMode ? 'Edit Listing - ' : ''}Step {currentStep + 1} of {STEPS.length}
                         </span>
                     </div>
                     <div className="flex space-x-2">
@@ -905,7 +1088,7 @@ export default function ListingWizard() {
                         </Button>
                     ) : (
                         <Button type="submit" loading={submitting}>
-                            Publish Listing
+                            {isEditMode ? 'Save Changes' : 'Publish Listing'}
                         </Button>
                     )}
                 </div>

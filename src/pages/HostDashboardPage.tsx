@@ -156,10 +156,7 @@ export default function HostDashboardPage() {
 
     // Property action handlers
     const handleEditProperty = (propertyId: string) => {
-        // TODO: Implement full edit functionality in ListingWizard
-        // For now, navigate to property detail page
-        toast('Edit feature coming soon! Viewing property details...', { icon: 'ℹ️' });
-        navigate(`/property/${propertyId}`);
+        navigate(`/host/listings/${propertyId}/edit`);
     };
 
     const handleDeleteProperty = (property: Property) => {

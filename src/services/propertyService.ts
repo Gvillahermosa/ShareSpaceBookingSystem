@@ -421,33 +421,40 @@ export async function getAllProperties(): Promise<Property[]> {
 
 // Search properties with filters
 export async function searchProperties(filters: SearchFilters): Promise<Property[]> {
+    // First, try to get properties with 'active' status
     let q = query(
         collection(db, PROPERTIES_COLLECTION),
-        where('status', '==', 'active' as PropertyStatus)
+        orderBy('createdAt', 'desc'),
+        limit(100)
     );
-
-    // Apply property type filter
-    if (filters.propertyType && filters.propertyType.length > 0) {
-        q = query(q, where('propertyType', 'in', filters.propertyType));
-    }
-
-    // Apply bedrooms filter
-    if (filters.bedrooms) {
-        q = query(q, where('bedrooms', '>=', filters.bedrooms));
-    }
-
-    // Apply instant book filter
-    if (filters.instantBook) {
-        q = query(q, where('instantBook', '==', true));
-    }
-
-    q = query(q, orderBy('createdAt', 'desc'), limit(100));
 
     const snapshot = await getDocs(q);
     let properties = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
     })) as Property[];
+
+    // Filter by status: include 'active' or properties without status (backwards compatibility)
+    properties = properties.filter(
+        (p) => p.status === 'active' || p.status === undefined || p.status === null
+    );
+
+    // Apply property type filter
+    if (filters.propertyType && filters.propertyType.length > 0) {
+        properties = properties.filter((p) =>
+            filters.propertyType!.includes(p.propertyType)
+        );
+    }
+
+    // Apply bedrooms filter
+    if (filters.bedrooms) {
+        properties = properties.filter((p) => p.bedrooms >= filters.bedrooms!);
+    }
+
+    // Apply instant book filter
+    if (filters.instantBook) {
+        properties = properties.filter((p) => p.instantBook === true);
+    }
 
     // Apply client-side filters
     if (filters.priceRange) {
