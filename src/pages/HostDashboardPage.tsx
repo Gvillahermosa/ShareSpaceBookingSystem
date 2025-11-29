@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import type { Property, Booking } from '../types';
-import { getHostProperties } from '../services/propertyService';
+import { getHostProperties, updateProperty, deleteProperty } from '../services/propertyService';
 import { getHostBookings, updateBookingStatus } from '../services/bookingService';
 import { useAuth } from '../contexts/AuthContext';
 import { ListingCard, EarningsSummary } from '../components/host';
@@ -38,6 +38,14 @@ export default function HostDashboardPage() {
         action: 'accept' | 'decline' | 'cancel' | null;
         bookingId: string | null;
     }>({ isOpen: false, action: null, bookingId: null });
+    const [propertyConfirmDialog, setPropertyConfirmDialog] = useState<{
+        isOpen: boolean;
+        action: 'delete' | 'toggle' | null;
+        propertyId: string | null;
+        propertyTitle: string;
+        currentStatus: string;
+    }>({ isOpen: false, action: null, propertyId: null, propertyTitle: '', currentStatus: '' });
+    const navigate = useNavigate();
 
     // Update active tab when URL changes
     useEffect(() => {
@@ -143,6 +151,61 @@ export default function HostDashboardPage() {
         } finally {
             setActionLoading(null);
             setConfirmDialog({ isOpen: false, action: null, bookingId: null });
+        }
+    };
+
+    // Property action handlers
+    const handleEditProperty = (propertyId: string) => {
+        // TODO: Implement full edit functionality in ListingWizard
+        // For now, navigate to property detail page
+        toast('Edit feature coming soon! Viewing property details...', { icon: 'ℹ️' });
+        navigate(`/property/${propertyId}`);
+    };
+
+    const handleDeleteProperty = (property: Property) => {
+        setPropertyConfirmDialog({
+            isOpen: true,
+            action: 'delete',
+            propertyId: property.id,
+            propertyTitle: property.title,
+            currentStatus: property.status || 'active',
+        });
+    };
+
+    const handleTogglePropertyStatus = (property: Property) => {
+        setPropertyConfirmDialog({
+            isOpen: true,
+            action: 'toggle',
+            propertyId: property.id,
+            propertyTitle: property.title,
+            currentStatus: property.status || 'active',
+        });
+    };
+
+    const handleConfirmPropertyAction = async () => {
+        const { action, propertyId, currentStatus } = propertyConfirmDialog;
+        if (!action || !propertyId) return;
+
+        setActionLoading(propertyId);
+        try {
+            if (action === 'delete') {
+                await deleteProperty(propertyId);
+                setProperties(prev => prev.filter(p => p.id !== propertyId));
+                toast.success('Property deleted successfully!');
+            } else if (action === 'toggle') {
+                const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+                await updateProperty(propertyId, { status: newStatus });
+                setProperties(prev => prev.map(p =>
+                    p.id === propertyId ? { ...p, status: newStatus } : p
+                ));
+                toast.success(`Property ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
+            }
+        } catch (error) {
+            console.error('Error updating property:', error);
+            toast.error(`Failed to ${action === 'delete' ? 'delete' : 'update'} property`);
+        } finally {
+            setActionLoading(null);
+            setPropertyConfirmDialog({ isOpen: false, action: null, propertyId: null, propertyTitle: '', currentStatus: '' });
         }
     };
 
@@ -315,9 +378,9 @@ export default function HostDashboardPage() {
                                     key={property.id}
                                     property={property}
                                     bookings={bookings}
-                                    onEdit={() => console.log('Edit', property.id)}
-                                    onDelete={() => console.log('Delete', property.id)}
-                                    onToggleStatus={() => console.log('Toggle', property.id)}
+                                    onEdit={() => handleEditProperty(property.id)}
+                                    onDelete={() => handleDeleteProperty(property)}
+                                    onToggleStatus={() => handleTogglePropertyStatus(property)}
                                 />
                             ))}
                         </div>
@@ -388,6 +451,38 @@ export default function HostDashboardPage() {
                 }
                 confirmText={actionLoading ? 'Processing...' : confirmDialog.action === 'accept' ? 'Accept' : confirmDialog.action === 'decline' ? 'Decline' : 'Cancel Booking'}
                 variant={confirmDialog.action === 'accept' ? 'info' : 'danger'}
+                loading={!!actionLoading}
+            />
+
+            {/* Confirmation Dialog for property actions */}
+            <ConfirmDialog
+                isOpen={propertyConfirmDialog.isOpen}
+                onClose={() => setPropertyConfirmDialog({ isOpen: false, action: null, propertyId: null, propertyTitle: '', currentStatus: '' })}
+                onConfirm={handleConfirmPropertyAction}
+                title={
+                    propertyConfirmDialog.action === 'delete'
+                        ? 'Delete Property'
+                        : propertyConfirmDialog.currentStatus === 'active'
+                            ? 'Deactivate Property'
+                            : 'Activate Property'
+                }
+                message={
+                    propertyConfirmDialog.action === 'delete'
+                        ? `Are you sure you want to delete "${propertyConfirmDialog.propertyTitle}"? This action cannot be undone and all associated data will be lost.`
+                        : propertyConfirmDialog.currentStatus === 'active'
+                            ? `Are you sure you want to deactivate "${propertyConfirmDialog.propertyTitle}"? It will no longer appear in search results.`
+                            : `Are you sure you want to activate "${propertyConfirmDialog.propertyTitle}"? It will become visible to guests.`
+                }
+                confirmText={
+                    actionLoading
+                        ? 'Processing...'
+                        : propertyConfirmDialog.action === 'delete'
+                            ? 'Delete'
+                            : propertyConfirmDialog.currentStatus === 'active'
+                                ? 'Deactivate'
+                                : 'Activate'
+                }
+                variant={propertyConfirmDialog.action === 'delete' ? 'danger' : 'info'}
                 loading={!!actionLoading}
             />
         </div>
