@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadProfilePhoto } from '../services/storageService';
 import { Button, Input, Avatar, Spinner } from '../components/ui';
+import { Modal } from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 
 const profileSchema = z.object({
@@ -17,8 +19,16 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
-    const { currentUser, userProfile, updateUserProfile } = useAuth();
+    const { currentUser, userProfile, updateUserProfile, deleteAccount } = useAuth();
+    const navigate = useNavigate();
     const [uploading, setUploading] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleting, setDeleting] = useState(false);
+
+    // Check if user signed up with Google
+    const isGoogleUser = currentUser?.providerData[0]?.providerId === 'google.com';
 
     const {
         register,
@@ -63,6 +73,35 @@ export default function ProfilePage() {
         } catch (error) {
             console.error('Error updating profile:', error);
             toast.error('Failed to update profile');
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'DELETE') {
+            toast.error('Please type DELETE to confirm');
+            return;
+        }
+
+        // For email/password users, require password
+        if (!isGoogleUser && !deletePassword) {
+            toast.error('Please enter your password to confirm');
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            await deleteAccount(isGoogleUser ? undefined : deletePassword);
+            toast.success('Your account has been deleted');
+            navigate('/');
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete account';
+            toast.error(errorMessage);
+        } finally {
+            setDeleting(false);
+            setShowDeleteModal(false);
+            setDeleteConfirmText('');
+            setDeletePassword('');
         }
     };
 
@@ -200,12 +239,101 @@ export default function ProfilePage() {
                                 Permanently delete your account and all data
                             </p>
                         </div>
-                        <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:bg-red-50"
+                            onClick={() => setShowDeleteModal(true)}
+                        >
                             Delete
                         </Button>
                     </div>
                 </div>
             </div>
+
+            {/* Delete Account Confirmation Modal */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmText('');
+                    setDeletePassword('');
+                }}
+                size="sm"
+                showCloseButton={true}
+            >
+                <div className="p-2">
+                    <div className="text-center mb-6">
+                        <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                            <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-xl font-bold text-secondary-900">Delete Account?</h2>
+                        <p className="text-secondary-500 mt-2">
+                            This action cannot be undone. All your data, bookings, and listings will be permanently deleted.
+                        </p>
+                        {isGoogleUser && (
+                            <p className="text-sm text-secondary-400 mt-2">
+                                You will be asked to re-authenticate with Google.
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                        {!isGoogleUser && (
+                            <div>
+                                <label className="block text-sm font-medium text-secondary-700 mb-2">
+                                    Enter your password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={deletePassword}
+                                    onChange={(e) => setDeletePassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                />
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-sm font-medium text-secondary-700 mb-2">
+                                Type <span className="font-bold text-red-600">DELETE</span> to confirm
+                            </label>
+                            <input
+                                type="text"
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                placeholder="DELETE"
+                                className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex space-x-3">
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            onClick={() => {
+                                setShowDeleteModal(false);
+                                setDeleteConfirmText('');
+                                setDeletePassword('');
+                            }}
+                            disabled={deleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="danger"
+                            fullWidth
+                            onClick={handleDeleteAccount}
+                            loading={deleting}
+                            disabled={deleteConfirmText !== 'DELETE' || (!isGoogleUser && !deletePassword)}
+                        >
+                            Delete Account
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }
