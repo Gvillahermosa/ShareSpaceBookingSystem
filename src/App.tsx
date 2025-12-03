@@ -18,6 +18,7 @@ import ProfilePage from './pages/ProfilePage';
 import BecomeHostPage from './pages/BecomeHostPage';
 import WishlistsPage from './pages/WishlistsPage';
 import BookingSuccessPage from './pages/BookingSuccessPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 // Import date picker styles
 import 'react-datepicker/dist/react-datepicker.css';
@@ -41,6 +42,7 @@ function App() {
                         <Route element={<ProtectedRoute />}>
                             <Route path="/trips" element={<TripsPage />} />
                             <Route path="/wishlists" element={<WishlistsPage />} />
+                            <Route path="/notifications" element={<NotificationsPage />} />
                             <Route path="/messages" element={<MessagesPage />} />
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/account" element={<ProfilePage />} />
